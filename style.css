@@ -1,0 +1,236 @@
+body {
+  width: 100%;
+  height: 100%;
+  background-color: black;
+}
+
+#main-section {
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  position: fixed;
+  overflow: hidden;
+}
+
+#main-content {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  pointer-events: all;
+}
+
+.table-wrapper {
+  position: absolute;
+  width: 50.13%;
+  height: 41%;
+  top: 45%;
+  left: 17.935%;
+  pointer-events: all;
+  background: url(images/table-roulette.png);
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: all 0.5s linear;
+}
+.board-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.board-chip-wrapper {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+#hitarea {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  width: 100%;
+  height: 100%;
+  pointer-events: all;
+}
+
+.buttonB {
+  position: absolute;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  pointer-events: all;
+}
+#betAmount {
+  color: white;
+  border: 2px solid #ffd700;
+  background: rgba(0, 0, 0, 0.8);
+  width: 120px;
+  height: 60px;
+  padding: 10px;
+  font-size: 24px;
+  font-weight: bold;
+  font-family: Arial, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 1000;
+  border-radius: 8px;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+}
+#start{
+  position: absolute;
+  bottom: 2%;
+  left: 10%;
+  width: 5%;
+  height: 5%;
+}
+#chip-wrapper {
+  position: absolute;
+  width: 20%;
+  height: 10%;
+  border: 1px solid white;
+  right: 2px;
+  top: 10px;
+  display: flex;
+  flex-direction: row;
+  gap: 1px;
+  padding: 5px;
+  box-sizing: border-box;
+}
+.chip {
+  position: relative;
+  flex: 1;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 20%;
+  height: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: black;
+  font-size:2vh;
+  font-weight: bold;
+}
+.chip:hover {
+  transform: scale(1.1);
+}
+.chip:active {
+  transform: scale(0.95);
+}
+#chip1 {
+  background-image: url(images/chips/chip1.png);
+}
+#chip1.active {
+  background-image: url(images/chips/chip-active1.png);
+}
+#chip2 {
+  background-image: url(images/chips/chip2.png);
+}
+#chip2.active {
+  background-image: url(images/chips/chip-active2.png);
+}
+#chip3 {
+  background-image: url(images/chips/chip3.png);
+}
+#chip3.active {
+  background-image: url(images/chips/chip-active3.png);
+}
+#chip4 {
+  background-image: url(images/chips/chip4.png);
+}
+#chip4.active {
+  background-image: url(images/chips/chip-active4.png);
+}
+#chip5 {
+  background-image: url(images/chips/chip5.png);
+}
+#chip5.active {
+  background-image: url(images/chips/chip-active5.png);
+}
+/*  Da se vide dugmici kumici*/
+
+/*body {
+  width: 100%;
+  height: 100%;
+  background-color: black;
+  margin: 0;
+  padding: 0;
+}
+
+#main-section {
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  position: fixed;
+  overflow: hidden;
+}
+
+#main-content {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  pointer-events: all;
+}
+
+.table-wrapper {
+  position: absolute;
+  width: 50.13%;
+  height: 41%;
+  top: 45%;
+  left: 17.935%;
+  pointer-events: all;
+  background: url(images/table-roulette.png);
+  background-size: contain;
+  background-repeat: no-repeat;
+  transition: all 0.5s linear;
+}
+
+.board-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.board-chip-wrapper {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;  
+  z-index: 101;
+}
+
+#hitarea {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  width: 100%;
+  height: 100%;
+  pointer-events: all;  
+}
+
+.bet-button,
+.buttonB,
+.bet-button-straight,
+.bet-button-corner,
+.bet-button-split,
+.bet-button-triple {  
+  position: absolute;
+  cursor: pointer;
+  padding: 0;
+  pointer-events: all; 
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+*/
