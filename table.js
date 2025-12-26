@@ -15,7 +15,7 @@ function createBettingZones() {
 
   // createButton(hitArea,"straight",1,startX+cellWidth+0.5,startY+2*cellHeight+0.5,cellWidth,cellHeight);
   // 0 kao dugme
-  createButton(hitArea, "straight", 0, 0.5, 1.5, cellWidth, cellHeight * 3.3);
+  createButton(hitArea, "straight", [0], 0.5, 1.5, cellWidth, cellHeight * 3.3);
 
   // Straight bets
   //1 - 34
@@ -212,7 +212,7 @@ function createBettingZones() {
 
   //1-12
   let array = Array.from({ length: 12 }, (_, i) => i + 1);
-  console.log(array);
+  // console.log(array);
   createButton(
     hitArea,
     "1-12",
@@ -225,7 +225,7 @@ function createBettingZones() {
 
   //13-24
   array = Array.from({ length: 12 }, (_, i) => i + 13);
-  console.log("ARRAY:", array);
+  // console.log("ARRAY:", array);
   createButton(
     hitArea,
     "13-24",
@@ -237,7 +237,7 @@ function createBettingZones() {
   );
   //25-36
   array = Array.from({ length: 12 }, (_, i) => i + 25);
-  console.log("ARRAY:", array);
+  // console.log("ARRAY:", array);
   createButton(
     hitArea,
     "25-36",
@@ -249,7 +249,7 @@ function createBettingZones() {
   );
   //1-18
   array = Array.from({ length: 18 }, (_, i) => i + 1);
-  console.log("ARRAY:", array);
+  // console.log("ARRAY:", array);
   createButton(
     hitArea,
     "1-18",
@@ -261,7 +261,7 @@ function createBettingZones() {
   );
   //19-36
   array = Array.from({ length: 18 }, (_, i) => i + 19);
-  console.log("ARRAY:", array);
+  // console.log("ARRAY:", array);
   createButton(
     hitArea,
     "19-36",
@@ -274,7 +274,7 @@ function createBettingZones() {
 
   //2x1-3
   array = Array.from({ length: 12 }, (_, i) => 3 * i + 3);
-  console.log("ARRAY 2x1-3:", array);
+  // console.log("ARRAY 2x1-3:", array);
   createButton(
     hitArea,
     "2x1-3",
@@ -286,7 +286,7 @@ function createBettingZones() {
   );
   //2x1-2
   array = Array.from({ length: 12 }, (_, i) => 3 * i + 2);
-  console.log("ARRAY 2x1-2:", array);
+  // console.log("ARRAY 2x1-2:", array);
   createButton(
     hitArea,
     "2x1-2",
@@ -298,7 +298,7 @@ function createBettingZones() {
   );
   //2x1-1
   array = Array.from({ length: 12 }, (_, i) => 3 * i + 1);
-  console.log("ARRAY 2x1-1:", array);
+  // console.log("ARRAY 2x1-1:", array);
   createButton(
     hitArea,
     "2x1-1",
@@ -312,7 +312,7 @@ function createBettingZones() {
   createButton(
     hitArea,
     "red",
-    [],
+    [1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36],
     (startX + 0.57) * 4.75,
     startY + 4 * cellHeight + 8.5,
     cellWidth * 2.1,
@@ -322,7 +322,7 @@ function createBettingZones() {
   createButton(
     hitArea,
     "black",
-    [],
+    [2,4,6,8,10,11,13,15,17,20,22,24,26,28,29,31,33,35],
     (startX + 0.55) * 6.65,
     startY + 4 * cellHeight + 8.5,
     cellWidth * 2.1,

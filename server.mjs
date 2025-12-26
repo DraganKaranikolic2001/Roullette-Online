@@ -1,16 +1,8 @@
-import { createServer } from "http";
-import crypto from "crypto";
-import { buffer, json } from "stream/consumers";
-const PORT = 1337;
-const WEBSOCKET_MAGIC_STRING_KEY = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-const SEVEN_BITS_INTEGER_MARKER = 125;
-const SIXTEEN_BITS_INTEGER_MARKER = 126;
-const SIXFOUR_BITS_INTEGER_MARKER = 127;
-const FIRST_BIT = 128;
+import { WebSocketServer } from "ws";
 
-const MAXIMUM_SIXTEENBITS_INTEGER = 2 ** 16;
-const MASK_KEY_BYTES_LENGTH = 4;
-const OPCODE_TEXT = 0x01; // 1 bit in binary
+const PORT = 1337;
+
+const wss = new WebSocketServer({ port: PORT });
 
 let numberStruct = [
   { number: 0, parity: null, color: "green", split: [1, 2, 3] },
@@ -244,196 +236,109 @@ let numberStruct = [
   { number: 36, parity: "even", color: "red", corner: 22, split: [58, 60] },
 ];
 
-const server = createServer((request, response) => {
-  response.writeHead(200);
-  response.end("hey there");
-}).listen(1337, () => console.log("server listening to", PORT));
-server.on("upgrade", onSocketUpgrade);
+// 🎯 GAME STATE
+let gameState = {
+  currentBalance: 5000,
+  tableLimit: 10000,
+  minBet: 10,
+  maxBet: 500,
+  availableChips: [10, 20, 50, 100, 200], // ✅ Ispravio typo: availableChips
+  enabledBets: {
+    straight: true,
+    split: true,
+    corner: true,
+    triple: true,
+    red: true,
+    black: true,
+    "1-12": true,
+    "13-24": true,
+    "25-36": true,
+    "1-18": true,
+    "19-36": true,
+    "2x1-1": true,
+    "2x1-2": true,
+    "2x1-3": true,
+  },
+};
 
-function onSocketUpgrade(req, socket, head) {
-  const { "sec-websocket-key": webClientSocketKey } = req.headers;
+//CONNECTION HANDLER
+wss.on("connection", (ws) => {
+  console.log("✅ Novi klijent konektovan");
 
-  console.log(`${webClientSocketKey} connected !`);
-  const headers = prepareHandShakeHeaders(webClientSocketKey);
-  //salje handshake odgovor
-  socket.write(headers);
-  //listener za citanje poruka
-  socket.on("readable", () => onSocketReadable(socket));
-}
+  //  INIT PORUKU
+  const initData = {
+    type: "init",
+    balance: gameState.currentBalance, 
+    availableChips: gameState.availableChips, 
+    tableLimit: gameState.tableLimit,
+    minBet: gameState.minBet,
+    maxBet: gameState.maxBet,
+    enabledBets: gameState.enabledBets,
+    message: "Dobrodošao u rulet!",
+    timestamp: Date.now(),
+  };
 
-//slanje klijentu
-function sendMessage(msg, socket) {
-  const dataFrameBuffer = prepareMessage(msg);
-  socket.write(dataFrameBuffer);
-}
-//slanje klijentu
-function prepareMessage(message) {
-  const msg = Buffer.from(message);
-  const messageSize = msg.length;
+  ws.send(JSON.stringify(initData));
+  console.log("Poslata init data:", initData);
 
-  let dataFrameBuffer;
+  // 🎯 MESSAGE HANDLER
+  ws.on("message", (message) => {
+    try {
+      const data = JSON.parse(message);
+      console.log("Primljena poruka od klijenta:", data);
 
-  //0x80 === 128 in binary
-  // '0x' + Math.abs(128).toString(16) == 0x80
-  const firstByte = 0x80 | OPCODE_TEXT; //single frame + text
+      // Generiši ruku
+      const serverHand = generateHand();
+      console.log("Server generisao:", serverHand);
 
-  if (messageSize <= SEVEN_BITS_INTEGER_MARKER) {
-    const bytes = [firstByte];
-    dataFrameBuffer = Buffer.from(bytes.concat(messageSize));
-  } else if (messageSize <= MAXIMUM_SIXTEENBITS_INTEGER) {
-    const offsetFourBytes = 4;
-    const target = Buffer.allocUnsafe(offsetFourBytes);
-    target[0] = firstByte;
-    target[1] = SIXTEEN_BITS_INTEGER_MARKER | 0x0; //just to know the mask
-    target.writeUInt16BE(messageSize, 2); // content length is 2 bytes
-    dataFrameBuffer = target;
+      // Proveri bet
+      const result = checkGuess(data, serverHand);
+      console.log(" Rezultat:", result);
 
-    //alloc 4 bytes
-    //[0] - 128 + 1 - 10000001 = 0x81 fin + opcode
-    //[1] - 126 + 0 - payload length marker + mask indicator
-    //[2] 0 - content length
-    //[3] 171 - content length
-    //[4 - ..] - the message itself
-  } else {
-    throw new Error("message too long buddy :(");
-  }
-  const totalLength = dataFrameBuffer.byteLength + messageSize;
-  const dataFrameResponse = concat([dataFrameBuffer, msg], totalLength);
-  return dataFrameResponse;
-}
+      // Ažuriraj balance
+      const netWin = result.win - result.totalBet;
+      gameState.currentBalance += netWin;
 
-function concat(bufferList, totalLength) {
-  const target = Buffer.allocUnsafe(totalLength);
-  let offset = 0;
-  for (const buffer of bufferList) {
-    target.set(buffer, offset);
-    offset += buffer.length;
-  }
-  return target;
-}
-//XOR DEKODIRANJE< ODNOSNO SKLANJA MASKU STO KLIJENT SALJE SERVERU
-function unMask(encodedBuffer, maskKey) {
-  const finalBuffer = Buffer.from(encodedBuffer);
-  // because the maskKey has only 4 bites
-  //index %4 === 0, 1 , 2 , 3 = index bits need to decode the message
+      // Dodaj balance u rezultat
+      result.newBalance = gameState.currentBalance;
+      result.type = "spinResult";
 
-  //XOR ^
-  // returns 1 if both are diffrent
-  //return 0 if both are equal
+     
+      ws.send(JSON.stringify(result));
 
-  // (71).toString(2).padStart(8,"0") = 0 1 0 0 0 1 1 1
-  // (53).toString(2)padStart(8,"0") =  0 0 1 1 0 1 0 1
-  //                                    0 1 1 1 0 0 1 0
+      console.log(
+        `Balance update: ${result.totalBet} bet, ${result.win} win, novi balance: ${gameState.currentBalance}`
+      );
+    } catch (error) {
+      console.error("Error parsing JSON:", error.message);
+    }
+  }); // ✅ DODAO zatvaranje ws.on("message")
 
-  //(71^53)toString(2).padStart(8,"0") = '01110010'
-  // String.fromCharCode(parseInt('01110010',2)) => 'r'
-  const fillWIthEightZeros = (t) => t.padStart(8, "0");
-  const toBinary = (t) => fillWIthEightZeros(t.toString(2));
-  const fromBinaryToDecimal = (t) => parseInt(toBinary(t), 2);
-  const getCharFromBinary = (t) => String.fromCharCode(fromBinaryToDecimal(t));
 
-  for (let index = 0; index < encodedBuffer.length; index++) {
-    finalBuffer[index] =
-      encodedBuffer[index] ^ maskKey[index % MASK_KEY_BYTES_LENGTH];
+  ws.on("close", () => {
+    console.log(" Klijent diskonektovan");
+  });
 
-    const logger = {
-      unmaskingCalc: `${toBinary(encodedBuffer[index])} ^ ${toBinary(
-        maskKey[index % MASK_KEY_BYTES_LENGTH]
-      )} = ${toBinary(finalBuffer[index])}}`,
-      decoded: getCharFromBinary(finalBuffer[index]),
-    };
-    //console.log(logger);
-  }
-  return finalBuffer;
-}
-//uspostavlja konekciju(handshake)
-function prepareHandShakeHeaders(id) {
-  const acceptKey = createSocketAccept(id);
-  const headers = [
-    "HTTP/1.1 101 Switching Protocols",
-    "Upgrade: websocket",
-    "Connection: Upgrade",
-    `Sec-WebSocket-Accept: ${acceptKey}`,
-    "",
-  ]
-    .map((line) => line.concat("\r\n"))
-    .join("");
-  return headers;
-}
-//Spaja kljuc sa magicnim stringom , ovo klijentu dokazuje da server razume WebSocket protokol
-function createSocketAccept(id) {
-  const shaum = crypto.createHash("sha1");
-  shaum.update(id + WEBSOCKET_MAGIC_STRING_KEY);
-  return shaum.digest("base64");
-}
 
-//error handling to keep server on
+  ws.on("error", (error) => {
+    console.error("WebSocket error:", error);
+  });
+  console.log(` WebSocket server pokrenut na ws://localhost:${PORT}`);
+}); 
+
+
+// 🎯 ERROR HANDLING ZA CEO PROCES
 ["uncaughtException", "unhandledRejection"].forEach((event) =>
   process.on(event, (err) => {
     console.error(
-      `something bad happened! event: ${event}, msg: ${err.stack || err}`
+      `Problem! event: ${event}, msg: ${err.stack || err}`
     );
   })
 );
 
-//dekodira poruku
-function onSocketReadable(socket) {
-  //consume optcode (first byte)
-  //1 -1 byte - 8bits
-  const firstByteBuffer = socket.read(1);
-  if (!firstByteBuffer) return;
-
-  const secondByteBuffer = socket.read(1);
-  if (!secondByteBuffer) return;
-
-  const markerAndPayLoadLength = secondByteBuffer[0];
-  //Because the first bit is always 1 for client-to-server messages
-  //You can substract one bit (128 or '10000000')
-  //from this byte to get rid of the MASK bit
-  const lengthIndicatorInBits = markerAndPayLoadLength - FIRST_BIT;
-
-  let messageLength = 0;
-
-  if (lengthIndicatorInBits <= SEVEN_BITS_INTEGER_MARKER) {
-    messageLength = lengthIndicatorInBits;
-  } else if (lengthIndicatorInBits === SIXTEEN_BITS_INTEGER_MARKER) {
-    //unisged, big-endian 16-bit integer [0 - 65k]
-    const lenghtBuffer = socket.read(2);
-    if (!lenghtBuffer) return;
-    messageLength = lenghtBuffer.readUint16BE(0);
-  } else {
-    throw new Error("your message is to long! we dont handle 64 bit messages");
-  }
-
-  const maskKey = socket.read(MASK_KEY_BYTES_LENGTH);
-  if (!maskKey) return;
-  const encoded = socket.read(messageLength);
-  if (!encoded) return;
-  const decoded = unMask(encoded, maskKey);
-  const received = decoded.toString("utf-8");
-
-  try {
-    const data = JSON.parse(received);
-    console.log("received message from client", data);
-    // const clientData = Array.isArray(data) ? data[0] : data;
-    //slanje klijentu
-    const serverHand = generateHand();
-    console.log("Server generated: ", serverHand);
-    const result = checkGuess(data, serverHand);
-    console.log("Result: ", result);
-    const msg = JSON.stringify(result);
-    sendMessage(msg, socket);
-  } catch (error) {
-    console.error("Error parsing JSON:", error.message);
-    console.log("Received non-JSON data:", received);
-  }
-}
-// const amount = 50;
+// 🎯 TVOJE FUNKCIJE
 function checkGuess(data, serverHand) {
-  console.log("DATA BETS: ", data.bets);
-  // const parityMatch = data === serverHand.parity;
-  // const numberMatch = data.numberBet === serverHand.number;
-  // const cornerMatch = data.cornerNumbers.includes(serverHand.number);
+  console.log("DATA BETS:", data.bets);
 
   let message = "";
   let success = false;
@@ -444,14 +349,17 @@ function checkGuess(data, serverHand) {
   let clientSplits = [];
   let clientParity = null;
   let clientColor = null;
+  let client2x1 = null;
+  let clientThirdTable = null;
+  let clientHalf = null;
+
   data.bets.forEach((d) => {
     if (d.type === "straight") {
       if (d.numbers[0] === serverHand.number) {
-        message = "Bravo kuco , pogodio si broj";
+        message = "Bravo kuco, pogodio si broj";
         success = true;
         const numberWin = d.amount * 35;
         win += numberWin;
-
         winDetails.push({
           type: "straight",
           bet: d.numbers[0],
@@ -463,14 +371,13 @@ function checkGuess(data, serverHand) {
     } else if (d.type === "corner") {
       if (d.numbers.includes(serverHand.number)) {
         if (message) {
-          message += "Pogodio si i corner";
+          message += " + pogodio si i corner";
         } else {
-          message += "Pogodio si corner";
+          message = "Pogodio si corner";
           success = true;
         }
-        const cornerWin = d.amount * 4;
+        const cornerWin = d.amount * 8;
         win += cornerWin;
-
         winDetails.push({
           type: "corner",
           bet: d.numbers,
@@ -478,18 +385,34 @@ function checkGuess(data, serverHand) {
           win: cornerWin,
         });
       }
-      clientCorners.push(d.cornerId);
+      clientCorners.push(d.numbers);
+    } else if (d.type === "triple") {
+      if (d.numbers.includes(serverHand.number)) {
+        if (message) {
+          message += " + pogodio si i triple";
+        } else {
+          message = "Pogodio si triple";
+          success = true;
+        }
+        const tripleWin = d.amount * 11;
+        win += tripleWin;
+        winDetails.push({
+          type: "triple",
+          bet: d.numbers,
+          amount: d.amount,
+          win: tripleWin,
+        });
+      }
     } else if (d.type === "split") {
       if (d.numbers.includes(serverHand.number)) {
         if (message) {
-          message += "Pogodio si i split";
+          message += " + pogodio si i split";
         } else {
-          message += "Pogodio si split";
+          message = "Pogodio si split";
           success = true;
         }
-        const splitWin = d.amount * 18;
+        const splitWin = d.amount * 17;
         win += splitWin;
-
         winDetails.push({
           type: "split",
           bet: d.numbers,
@@ -501,14 +424,13 @@ function checkGuess(data, serverHand) {
     } else if (d.type === "parity") {
       if (serverHand.parity !== null && d.value === serverHand.parity) {
         if (message) {
-          message += " PLUS pogodio si parnost!";
+          message += " + pogodio si parnost!";
         } else {
           message = "Pogodio si parnost (" + d.value + ")!";
           success = true;
         }
-        const parityWin = d.amount * 2;
+        const parityWin = d.amount * 1;
         win += parityWin;
-
         winDetails.push({
           type: "parity",
           bet: d.value,
@@ -517,31 +439,86 @@ function checkGuess(data, serverHand) {
         });
       }
       clientParity = d.value;
-    } else if (d.type === "color") {
-      if (d.color === serverHand.color) {
+    } else if (d.type === "red" || d.type === "black") {
+      if (d.type === serverHand.color) {
         if (message) {
-          message += " PLUS pogodio si boju";
+          message += " + pogodio si boju";
         } else {
-          message = "Pogodio si boju (" + d.color + ")!";
+          message = "Pogodio si boju (" + d.type + ")!";
           success = true;
         }
-        const colorWin = d.amount * 2;
+        const colorWin = d.amount * 1;
         win += colorWin;
         winDetails.push({
           type: "color",
-          bet: d.color,
+          bet: d.type,
           amount: d.amount,
           win: colorWin,
         });
       }
-      clientColor = d.color;
+      clientColor = d.type;
+    } else if (d.type === "2x1-1" || d.type === "2x1-2" || d.type === "2x1-3") {
+      if (d.numbers.includes(serverHand.number)) {
+        if (message) {
+          message += " + pogodio si 2x1";
+        } else {
+          message = "Pogodio si 2x1 (" + d.type + ")!";
+          success = true;
+        }
+        const TwoXOneWin = d.amount * 2;
+        win += TwoXOneWin;
+        winDetails.push({
+          type: "2x1",
+          bet: d.type,
+          amount: d.amount,
+          win: TwoXOneWin,
+        });
+      }
+      client2x1 = d.type;
+    } else if (d.type === "1-12" || d.type === "13-24" || d.type === "25-36") {
+      if (d.numbers.includes(serverHand.number)) {
+        if (message) {
+          message += " + pogodio si trećinu table";
+        } else {
+          message = "Pogodio si trećinu (" + d.type + ")!";
+          success = true;
+        }
+        const OneThirdWin = d.amount * 2;
+        win += OneThirdWin;
+        winDetails.push({
+          type: "thirdTable",
+          bet: d.type,
+          amount: d.amount,
+          win: OneThirdWin,
+        });
+      }
+      clientThirdTable = d.type;
+    } else if (d.type === "1-18" || d.type === "19-36") {
+      if (d.numbers.includes(serverHand.number)) {
+        if (message) {
+          message += " + pogodio si polovinu table";
+        } else {
+          message = "Pogodio si polovinu (" + d.type + ")!";
+          success = true;
+        }
+        const HalfWin = d.amount * 1;
+        win += HalfWin;
+        winDetails.push({
+          type: "halfTable",
+          bet: d.type,
+          amount: d.amount,
+          win: HalfWin,
+        });
+      }
+      clientHalf = d.type;
     }
   });
+
   if (!success) {
-    message = "Kuco sve si promasio :(";
+    message = "Kuco sve si promašio :(";
   }
-  let val = 0;
-  const totalBet = 0;
+
+  const totalBet = data.betAmount;
 
   return {
     success: success,
@@ -554,6 +531,9 @@ function checkGuess(data, serverHand) {
       parity: clientParity,
       corner: clientCorners,
       color: clientColor,
+      client2x1: client2x1,
+      clientThirdTable: clientThirdTable,
+      clientHalf: clientHalf,
     },
     serverResult: {
       number: serverHand.number,
@@ -564,78 +544,17 @@ function checkGuess(data, serverHand) {
     },
     at: new Date().toISOString(),
   };
-
-  // if (numberMatch) {
-  //   message = "Bravo kuco , pogodio si broj";
-  //   success = true;
-  //   const numberWin = data.betAmountOnNumber * 35;
-  //   win += numberWin;
-  //   winDetails.push({
-  //     type: "straight",
-  //     bet: data.numberBet,
-  //     amount: data.betAmountOnNumber,
-  //     winOnNumber: numberWin,
-  //   });
-  // }
-  // if (cornerMatch) {
-  //   if (message) {
-  //     message += "Pogodio si i koren";
-  //   } else {
-  //     message = "Pogodio si koren";
-  //     success = true;
-  //   }
-  //   const cornerWin = data.betAmountCorner * 8;
-  //   win += cornerWin;
-  //   winDetails.push({
-  //     type: "corner",
-  //     bet: data.cornerNumbers,
-  //     amount: data.betAmountCorner,
-  //     win: cornerWin,
-  //   });
-  // }
-  // if (parityMatch && serverHand.parity !== null) {
-  //   if (message) {
-  //     message += " PLUS pogodio si parnost!";
-  //   } else {
-  //     message = "Pogodio si parnost (" + data.parity + ")!";
-  //     success = true;
-  //   }
-  //   const parityWin = data.betAmountOnParity * 2;
-  //   win += parityWin;
-  //   winDetails.push({
-  //     type: "parity",
-  //     bet: data.parity,
-  //     amount: data.betAmountOnParity,
-  //     win: parityWin,
-  //   });
-  // }
-  // if (!success) {
-  //   message = "Kuco sve si promasio :(";
-  // }
-  // const totalBet =
-  //   data.betAmountOnNumber + data.betAmountCorner + data.betAmountOnParity;
-  // return {
-  //   success: success,
-  //   message: message,
-  //   win: win,
-  //   totalBet: totalBet,
-  //   winningDetails: winDetails,
-  //   clientGuess: {
-  //     number: data.numberBet,
-  //     parity: data.parityNumber,
-  //     corner: data.cornerBetID,
-  //   },
-  //   serverResult: {
-  //     number: serverHand.number,
-  //     parity: serverHand.parity,
-  //   },
-  //   at: new Date().toISOString(),
-  // };
 }
+
 function generateHand() {
   let rng = generateRandomNumber(numberStruct.length);
   return numberStruct[rng];
 }
+
 function generateRandomNumber(n) {
   return Math.floor(Math.random() * n);
 }
+//dodati kredite za igraca na backu , prikaz na frontu
+// sa servera salje init poruku u kojoj su definisani betovi za cipove i pocetni kredit i dodati mogucnost kao slider za vise cipova da se prikazuju
+// na init poruku da stigne mogucnost da se iksljuce odredjeni betovi (Straight, red/black itd ) da biramo sta da bude ukljuceno sta ne
+// da ne moze da se klikne dok se ruka ne zavrsi

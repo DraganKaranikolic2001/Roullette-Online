@@ -24,9 +24,8 @@ body {
   position: absolute;
   width: 50.13%;
   height: 41%;
-  top: 45%;
-  left: 17.935%;
-  pointer-events: all;
+  top: 42%;
+  left: 25%;
   background: url(images/table-roulette.png);
   background-size: contain;
   background-repeat: no-repeat;
@@ -42,19 +41,26 @@ body {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  z-index: 1;
+  z-index: 12;
 }
-
+#balanceAmount.balance-updated {
+  transform: scale(1.1);
+  box-shadow: 0 0 25px rgba(0, 255, 0, 0.8);
+}
 #hitarea {
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 100;
+  z-index: 10;
   width: 100%;
   height: 100%;
-  pointer-events: all;
 }
-
+#lineCanvas {
+  width: 100%;
+  height: 5%;
+  position: absolute;
+  bottom: 16%;
+}
 .buttonB {
   position: absolute;
   background: transparent;
@@ -62,13 +68,53 @@ body {
   cursor: pointer;
   padding: 0;
   pointer-events: all;
+  z-index: 10;
 }
-#betAmount {
+#Uiwrapper {
+  width: 100%;
+  height: 16%;
+  position: absolute;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2%;
+}
+#labels {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  gap: 10%;
+  flex: 2;
+}
+#labelWin,
+#labelBet,
+#labelBalance {
   color: white;
-  border: 2px solid #ffd700;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+  font-weight: bold;
+  font-size: 2vh;
+  user-select: none;
+}
+#betDiv,
+#winDiv,
+#balanceDiv {
+  width: 10%;
+  height: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+#betAmount,
+#winAmount {
+  color: white;
+  border: 2px solid #ff0000;
   background: rgba(0, 0, 0, 0.8);
-  width: 120px;
-  height: 60px;
+  width: 8%;
+  width: 100%;
+  height: 100%;
   padding: 10px;
   font-size: 24px;
   font-weight: bold;
@@ -76,31 +122,73 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  position: fixed;
-  top: 20px;
-  left: 20px;
-  z-index: 1000;
   border-radius: 8px;
-  box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
 }
-#start{
+#balanceAmount {
+  color: #00ff00; /* Zelena boja za balance */
+  border: 2px solid #00ff00;
+  background: rgba(0, 0, 0, 0.8);
+  width: 100%;
+  height: 100%;
+  padding: 10px;
+  font-size: 24px;
+  font-weight: bold;
+  font-family: Arial, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+  transition: all 0.3s ease;
+}
+#buttonWrapper {
+  flex: 2;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+#start {
+  width: 10%;
+  background-color: transparent;
+  border: 1px solid gold;
+  color: gold;
+  border-radius: 10px;
+  font-size: 150%;
+  margin: 2%;
+  height: 50%;
+}
+#start:hover {
+  transform: scale(1.1);
+  background-color: #ff0000;
+  cursor: pointer;
+}
+#canvasNumber {
   position: absolute;
-  bottom: 2%;
-  left: 10%;
+  top: 25%;
+  right: 22%;
   width: 5%;
-  height: 5%;
-}
-#chip-wrapper {
-  position: absolute;
-  width: 20%;
   height: 10%;
-  border: 1px solid white;
-  right: 2px;
-  top: 10px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+/* Dodatni stilovi za oštrinu */
+
+#chip-wrapper {
+  flex: 1;
+  border: 0.5px double red;
+  box-shadow: 0 0 35px rgba(0, 255, 255, 0.5);
+  height: 60%;
+  width: 50%;
+  border-radius: 20px;
   display: flex;
   flex-direction: row;
   gap: 1px;
-  padding: 5px;
+
   box-sizing: border-box;
 }
 .chip {
@@ -113,12 +201,12 @@ body {
   transition: all 0.2s ease;
   width: 20%;
   height: 100%;
-
+  user-select: none;
   display: flex;
   align-items: center;
   justify-content: center;
   color: black;
-  font-size:2vh;
+  font-size: 2vh;
   font-weight: bold;
 }
 .chip:hover {
@@ -156,6 +244,35 @@ body {
 }
 #chip5.active {
   background-image: url(images/chips/chip-active5.png);
+}
+.bet-button-straight:hover,
+.bet-button-1-12:hover,
+.bet-button-13-24:hover,
+.bet-button-25-36:hover,
+.bet-button-2x1-1:hover,
+.bet-button-2x1-2:hover,
+.bet-button-2x1-3:hover,
+.bet-button-1-18:hover,
+.bet-button-19-36:hover,
+.bet-button-red:hover,
+.bet-button-black:hover {
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 2%;
+}
+
+/* .bet-button-corner:hover,
+.bet-button-split:hover,
+.bet-button-triple:hover {
+  background: rgba(255, 255, 255, 0.5); 
+  border: 1px solid white;
+  border-radius: 10%;
+  transform: scale(1.1);
+} */
+
+/* Highlightovanje straight betova kada se hoveruje corner/split/triple */
+.bet-button-straight.highlighted {
+  background: rgba(255, 255, 255, 0.5) !important;
+  border-radius: 2% !important;
 }
 /*  Da se vide dugmici kumici*/
 

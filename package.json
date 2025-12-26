@@ -1,0 +1,18 @@
+{
+  "name": "nodejs-raw-websocket",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch server.mjs",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "websocket roulette game",
+  "dependencies": {
+    "ws": "^8.18.3"
+  }
+}
