@@ -79,6 +79,7 @@ body {
   justify-content: center;
   align-items: center;
   gap: 2%;
+  user-select: none;
 }
 #labels {
   display: flex;
@@ -209,42 +210,58 @@ body {
   font-size: 2vh;
   font-weight: bold;
 }
+
 .chip:hover {
   transform: scale(1.1);
 }
+
 .chip:active {
   transform: scale(0.95);
 }
-#chip1 {
+
+.chip[data-chip-index="0"] {
   background-image: url(images/chips/chip1.png);
 }
-#chip1.active {
+.chip[data-chip-index="0"].active {
   background-image: url(images/chips/chip-active1.png);
 }
-#chip2 {
+
+.chip[data-chip-index="1"] {
   background-image: url(images/chips/chip2.png);
 }
-#chip2.active {
+.chip[data-chip-index="1"].active {
   background-image: url(images/chips/chip-active2.png);
 }
-#chip3 {
+
+.chip[data-chip-index="2"] {
   background-image: url(images/chips/chip3.png);
 }
-#chip3.active {
+.chip[data-chip-index="2"].active {
   background-image: url(images/chips/chip-active3.png);
 }
-#chip4 {
+
+.chip[data-chip-index="3"] {
   background-image: url(images/chips/chip4.png);
 }
-#chip4.active {
+.chip[data-chip-index="3"].active {
   background-image: url(images/chips/chip-active4.png);
 }
-#chip5 {
+
+.chip[data-chip-index="4"] {
   background-image: url(images/chips/chip5.png);
 }
-#chip5.active {
+.chip[data-chip-index="4"].active {
   background-image: url(images/chips/chip-active5.png);
 }
+
+/* Za dodatne čipove (ako server pošalje više od 5) */
+.chip[data-chip-index="5"] {
+  background-image: url(images/chips/chip6.png);
+}
+.chip[data-chip-index="5"].active {
+  background-image: url(images/chips/chip-active6.png);
+}
+
 .bet-button-straight:hover,
 .bet-button-1-12:hover,
 .bet-button-13-24:hover,

@@ -13,63 +13,63 @@ let avaliableChips = [];
 let bettingZones = [];
 let hoveredZone = null;
 let placedChips = [];
-let selectedChipValue = 10;
+let chipsValue = [];
+let chipValues = {};
+let selectedChipValue;
 const winDiv = document.getElementById("winAmount");
 const betDiv = document.getElementById("betAmount");
+let socket = null;
 
 document.getElementById("start").addEventListener("click", (ev) => spin());
 const chipImage = new Image();
 chipImage.src = "images/chips/chip-active6.png";
 
-function setSelectedChipValue(value) {
-  if (![10, 20, 50, 100, 200].includes(value)) {
-    console.error(`Nevalidna vrednost čipa: ${value}`);
+function initWebSocket() {
+  return new Promise((resolve, reject) => {
+    socket = new WebSocket("ws://localhost:1337");
+    socket.onopen = () => {
+      console.log("WebSocket povezan");
+    };
+
+    socket.onmessage = (msg) => {
+      // console.log("I got a message", message);
+      const result = JSON.parse(msg.data);
+      console.log("Parsed result:", result);
+      if (result.type === "init") {
+        handleInitData(result);
+        resolve(result);
+        console.log("Rezultat: ", result);
+      } else if (result.type === "spinResult") {
+        handleSpinResult(result);
+      }
+    };
+    socket.onerror = (error) => reject(error);
+    socket.onclose = (event) =>
+      console.log("Disconected from the web socket server");
+  });
+}
+function spin() {
+  if (!socket || socket.readyState !== WebSocket.OPEN) {
+    console.error("Socket nije povezan");
     return;
   }
-  selectedChipValue = value;
-  console.log(`Izabran čip vrednosti: ${value}`);
-}
-
-function spin() {
-  const messages = document.getElementById("messages");
-  const socket = new WebSocket("ws://localhost:1337");
-  socket.onopen = (event) => {
-    // console.log("Web socket is connected");
-    // const id = Math.round(Math.random() * 100);
-    // console.log("sending...", id);
-
-    // console.log(hand);
-    const dataToSend = {
-      bets: placedChips,
-      betAmount: totalBet,
-    };
-    // console.log(dataToSend);
-    const data = JSON.stringify(dataToSend);
-    console.log(data);
-    socket.send(data);
-    const roulTable = document.querySelectorAll(".buttonB");
-    roulTable.forEach((r) => {
-      console.log(r);
-      r.style.pointerEvents = "none";
-    });
+  console.log(socket);
+  // const id = Math.round(Math.random() * 100);
+  // console.log("sending...", id);
+  const roulTable = document.querySelectorAll(".buttonB");
+  roulTable.forEach((r) => {
+    // console.log(r);
+    r.style.pointerEvents = "none";
+  });
+  // console.log(hand);
+  // console.log(placedChips);
+  const dataToSend = {
+    bets: placedChips,
+    betAmount: totalBet,
   };
-  socket.onmessage = (msg) => {
-    const message = msg.data;
-    // console.log("I got a message", message);
-    const result = JSON.parse(msg.data);
-    // console.log("Parsed result:", result);
-    if (result.type === "init") {
-      handleInitData(result);
-    } else if (result.type === "spinResult") {
-      handleSpinResult(result);
-    } else {
-      // Fallback za tvoj stari format (ako nema type)
-      handleSpinResult(result);
-    }
-  };
-  socket.onerror = (error) => console.error("Web socket error", error);
-  socket.onclose = (event) =>
-    console.log("Disconected from the web socket server");
+  // console.log(dataToSend);
+  const data = JSON.stringify(dataToSend);
+  socket.send(data);
 
   setTimeout(() => {
     ctx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
@@ -87,16 +87,42 @@ function spin() {
 function handleInitData(data) {
   playerBalance = data.balance;
   tableLimit = data.tableLimit;
+  chipsValue = data.availableChips;
+  console.log("CIPOVI<", chipsValue);
   console.log(" Inicijalni balance:", playerBalance);
   updateBalanceDisplay();
+  createChips(chipsValue);
+  initChipSelection();
 }
+
+function createChips(chipValueArray) {
+  const cWrap = document.getElementById("chip-wrapper");
+
+  cWrap.innerHTML = "";
+
+  chipValues = {};
+
+  chipValueArray.forEach((value, index) => {
+    const chip = document.createElement("div");
+    chip.className = "chip";
+    chip.id = `chip${index + 1}`;
+    chip.dataset.chipIndex = index;
+    chip.dataset.chipValue = value;
+    chip.textContent = value;
+
+    cWrap.appendChild(chip);
+
+    chipValues[`chip${index + 1}`] = value;
+  });
+}
+
 function handleSpinResult(data) {
   const imageNumber = data.serverResult.number;
 
   if (data.newBalance !== undefined) {
     playerBalance = data.newBalance;
     updateBalanceDisplay();
-    console.log(`💰 Novi balance: ${playerBalance}`);
+    console.log(`Novi balance: ${playerBalance}`);
   }
 
   drawNumberWin(imageNumber);
@@ -104,13 +130,14 @@ function handleSpinResult(data) {
   winDiv.innerHTML = data.win;
 }
 
-// 🎯 NOVA FUNKCIJA - Ažuriraj prikaz balance-a
+//  NOVA FUNKCIJA - Ažuriraj prikaz balance-a
 function updateBalanceDisplay() {
   const balanceEl = document.getElementById("balanceAmount");
   if (balanceEl) {
+    console.log("Playerss::", playerBalance);
     balanceEl.innerHTML = playerBalance;
 
-    // 🎯 OPCIONO - Animacija promene
+    // OPCIONO - Animacija promene
     balanceEl.classList.add("balance-updated");
     setTimeout(() => {
       balanceEl.classList.remove("balance-updated");
@@ -142,21 +169,27 @@ function drawNumberWin(n) {
     ctxNum.drawImage(image, 0, 0, cssWidth, cssHeight);
   };
   image.onerror = () => {
-    console.error(`❌ Failed to load image: ${numberObject.src}`);
+    console.error(`Failed to load image: ${numberObject.src}`);
   };
 
   image.src = numberObject.src;
 }
-function initGrid() {
+async function initGrid() {
   const wrapper = document.querySelector(".table-wrapper");
   gridCanvas.width = wrapper.offsetWidth;
   gridCanvas.height = wrapper.offsetHeight;
 
-  // console.log(
-  // `Canvas dimenzije su width: ${gridCanvas.width}, height: ${gridCanvas.height}`
-  // );
+  try {
+    const initData = await initWebSocket();
+    console.log("Stigli podaci", initData);
+
+    drawChipValue();
+  } catch (error) {
+    console.error("Greska", error);
+  }
+
   createBettingZones();
-  drawGrid();
+
   setTimeout(initBetHighlighting, 100);
 
   const lineCanvas = document.getElementById("lineCanvas");
@@ -200,15 +233,8 @@ function initGrid() {
 
   // console.log("Table selection inicijalizovan!");
 }
-function drawChipValue() {
-  const chips = document.querySelectorAll(".chip");
-  const values = [10, 20, 50, 100, 200];
+initGrid();
 
-  chips.forEach((c, index) => {
-    c.textContent = values[index];
-  });
-}
-drawChipValue();
 function drawChip(x, y, amount, chipValue) {
   const pixelX = (x / 100) * gridCanvas.width;
   const pixelY = (y / 100) * gridCanvas.height;
@@ -317,23 +343,17 @@ function handleBetClick(event) {
   //   console.log(`Kliknuo si triple bet na brojeve ${numbers.join(", ")}`);
   // }
 }
-initGrid();
-
-const chipValues = {
-  chip1: 10,
-  chip2: 20,
-  chip3: 50,
-  chip4: 100,
-  chip5: 200,
-};
 
 function initChipSelection() {
   const chips = document.querySelectorAll(".chip");
-
+  if (chips.length === 0) {
+    console.warn("Nema cipova za inicijalizaciju");
+    return;
+  }
   // console.log(chips);
   chips[0].classList.add("active");
 
-  selectedChipValue = chipValues["chip1"];
+  selectedChipValue = parseInt(chips[0].dataset.chipValue);
 
   chips.forEach((c) => {
     c.addEventListener("click", function () {
@@ -342,7 +362,7 @@ function initChipSelection() {
       this.classList.add("active");
 
       const chipId = this.id;
-      selectedChipValue = chipValues[chipId];
+      selectedChipValue = parseInt(this.dataset.chipValue);
 
       console.log(`Izabran chip: ${chipId}, vrednost: ${selectedChipValue}`);
     });

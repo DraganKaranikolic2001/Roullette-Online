@@ -236,52 +236,49 @@ let numberStruct = [
   { number: 36, parity: "even", color: "red", corner: 22, split: [58, 60] },
 ];
 
-// 🎯 GAME STATE
+// GAME STATE
 let gameState = {
   currentBalance: 5000,
   tableLimit: 10000,
   minBet: 10,
   maxBet: 500,
-  availableChips: [10, 20, 50, 100, 200], // ✅ Ispravio typo: availableChips
-  enabledBets: {
-    straight: true,
-    split: true,
-    corner: true,
-    triple: true,
-    red: true,
-    black: true,
-    "1-12": true,
-    "13-24": true,
-    "25-36": true,
-    "1-18": true,
-    "19-36": true,
-    "2x1-1": true,
-    "2x1-2": true,
-    "2x1-3": true,
-  },
+  availableChips: [10, 20, 50, 100, 200]  
+  // enabledBets: {
+  //   straight: true,
+  //   split: true,
+  //   corner: true,
+  //   triple: true,
+  //   red: true,
+  //   black: true,
+  //   "1-12": true,
+  //   "13-24": true,
+  //   "25-36": true,
+  //   "1-18": true,
+  //   "19-36": true,
+  //   "2x1-1": true,
+  //   "2x1-2": true,
+  //   "2x1-3": true,
+  // },
 };
 
 //CONNECTION HANDLER
 wss.on("connection", (ws) => {
-  console.log("✅ Novi klijent konektovan");
+  console.log("Novi klijent konektovan");
 
   //  INIT PORUKU
   const initData = {
     type: "init",
-    balance: gameState.currentBalance, 
-    availableChips: gameState.availableChips, 
+    balance: gameState.currentBalance,
+    availableChips: gameState.availableChips,
     tableLimit: gameState.tableLimit,
-    minBet: gameState.minBet,
-    maxBet: gameState.maxBet,
     enabledBets: gameState.enabledBets,
-    message: "Dobrodošao u rulet!",
     timestamp: Date.now(),
   };
 
   ws.send(JSON.stringify(initData));
   console.log("Poslata init data:", initData);
 
-  // 🎯 MESSAGE HANDLER
+  // MESSAGE HANDLER
   ws.on("message", (message) => {
     try {
       const data = JSON.parse(message);
@@ -303,7 +300,6 @@ wss.on("connection", (ws) => {
       result.newBalance = gameState.currentBalance;
       result.type = "spinResult";
 
-     
       ws.send(JSON.stringify(result));
 
       console.log(
@@ -312,31 +308,26 @@ wss.on("connection", (ws) => {
     } catch (error) {
       console.error("Error parsing JSON:", error.message);
     }
-  }); // ✅ DODAO zatvaranje ws.on("message")
-
+  }); //DODAO zatvaranje ws.on("message")
 
   ws.on("close", () => {
     console.log(" Klijent diskonektovan");
   });
 
-
   ws.on("error", (error) => {
     console.error("WebSocket error:", error);
   });
   console.log(` WebSocket server pokrenut na ws://localhost:${PORT}`);
-}); 
+});
 
-
-// 🎯 ERROR HANDLING ZA CEO PROCES
+//ERROR HANDLING ZA CEO PROCES
 ["uncaughtException", "unhandledRejection"].forEach((event) =>
   process.on(event, (err) => {
-    console.error(
-      `Problem! event: ${event}, msg: ${err.stack || err}`
-    );
+    console.error(`Problem! event: ${event}, msg: ${err.stack || err}`);
   })
 );
 
-// 🎯 TVOJE FUNKCIJE
+//TVOJE FUNKCIJE
 function checkGuess(data, serverHand) {
   console.log("DATA BETS:", data.bets);
 
@@ -447,7 +438,7 @@ function checkGuess(data, serverHand) {
           message = "Pogodio si boju (" + d.type + ")!";
           success = true;
         }
-        const colorWin = d.amount * 1;
+        const colorWin = d.amount * 2;
         win += colorWin;
         winDetails.push({
           type: "color",
@@ -465,7 +456,7 @@ function checkGuess(data, serverHand) {
           message = "Pogodio si 2x1 (" + d.type + ")!";
           success = true;
         }
-        const TwoXOneWin = d.amount * 2;
+        const TwoXOneWin = d.amount * 3;
         win += TwoXOneWin;
         winDetails.push({
           type: "2x1",
@@ -483,7 +474,7 @@ function checkGuess(data, serverHand) {
           message = "Pogodio si trećinu (" + d.type + ")!";
           success = true;
         }
-        const OneThirdWin = d.amount * 2;
+        const OneThirdWin = d.amount * 3;
         win += OneThirdWin;
         winDetails.push({
           type: "thirdTable",
@@ -501,7 +492,7 @@ function checkGuess(data, serverHand) {
           message = "Pogodio si polovinu (" + d.type + ")!";
           success = true;
         }
-        const HalfWin = d.amount * 1;
+        const HalfWin = d.amount * 2;
         win += HalfWin;
         winDetails.push({
           type: "halfTable",
@@ -554,7 +545,5 @@ function generateHand() {
 function generateRandomNumber(n) {
   return Math.floor(Math.random() * n);
 }
-//dodati kredite za igraca na backu , prikaz na frontu
 // sa servera salje init poruku u kojoj su definisani betovi za cipove i pocetni kredit i dodati mogucnost kao slider za vise cipova da se prikazuju
 // na init poruku da stigne mogucnost da se iksljuce odredjeni betovi (Straight, red/black itd ) da biramo sta da bude ukljuceno sta ne
-// da ne moze da se klikne dok se ruka ne zavrsi
