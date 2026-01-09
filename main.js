@@ -182,8 +182,6 @@ async function initGrid() {
   try {
     const initData = await initWebSocket();
     console.log("Stigli podaci", initData);
-
-    drawChipValue();
   } catch (error) {
     console.error("Greska", error);
   }

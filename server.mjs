@@ -1,9 +1,10 @@
 import { WebSocketServer } from "ws";
-
+import { betStrategies } from "./betStrategies.mjs";
 const PORT = 1337;
 
 const wss = new WebSocketServer({ port: PORT });
 
+// za corner i split vrednosti su kao id-jevi
 let numberStruct = [
   { number: 0, parity: null, color: "green", split: [1, 2, 3] },
   { number: 1, parity: "odd", color: "red", corner: 1, split: [1, 4, 6] },
@@ -242,7 +243,7 @@ let gameState = {
   tableLimit: 10000,
   minBet: 10,
   maxBet: 500,
-  availableChips: [10, 20, 50, 100, 200]  
+  availableChips: [10, 20, 50, 100, 200],
   // enabledBets: {
   //   straight: true,
   //   split: true,
@@ -327,181 +328,48 @@ wss.on("connection", (ws) => {
   })
 );
 
-//TVOJE FUNKCIJE
 function checkGuess(data, serverHand) {
-  console.log("DATA BETS:", data.bets);
-
   let message = "";
   let success = false;
   let win = 0;
-  let winDetails = [];
-  let clientNumbers = [];
-  let clientCorners = [];
-  let clientSplits = [];
-  let clientParity = null;
-  let clientColor = null;
-  let client2x1 = null;
-  let clientThirdTable = null;
-  let clientHalf = null;
+  const winDetails = [];
+  const clientGuess = {
+    number: [],
+    parity: null,
+    corner: [],
+    color: null,
+    client2x1: null,
+    thirdTable: null,
+    halfTable: null,
+    splits: [],
+    triple: [],
+  };
+  console.log("Pobeda :", winDetails);
+  data.bets.forEach((bet) => {
+    const strategy = betStrategies[bet.type];
+    if (!strategy) return;
+    if (strategy.storeClient) {
+      strategy.storeClient(bet, clientGuess);
+    }
 
-  data.bets.forEach((d) => {
-    if (d.type === "straight") {
-      if (d.numbers[0] === serverHand.number) {
-        message = "Bravo kuco, pogodio si broj";
-        success = true;
-        const numberWin = d.amount * 35;
-        win += numberWin;
-        winDetails.push({
-          type: "straight",
-          bet: d.numbers[0],
-          amount: d.amount,
-          winOnNumber: numberWin,
-        });
-      }
-      clientNumbers.push(d.numbers[0]);
-    } else if (d.type === "corner") {
-      if (d.numbers.includes(serverHand.number)) {
-        if (message) {
-          message += " + pogodio si i corner";
-        } else {
-          message = "Pogodio si corner";
-          success = true;
-        }
-        const cornerWin = d.amount * 8;
-        win += cornerWin;
-        winDetails.push({
-          type: "corner",
-          bet: d.numbers,
-          amount: d.amount,
-          win: cornerWin,
-        });
-      }
-      clientCorners.push(d.numbers);
-    } else if (d.type === "triple") {
-      if (d.numbers.includes(serverHand.number)) {
-        if (message) {
-          message += " + pogodio si i triple";
-        } else {
-          message = "Pogodio si triple";
-          success = true;
-        }
-        const tripleWin = d.amount * 11;
-        win += tripleWin;
-        winDetails.push({
-          type: "triple",
-          bet: d.numbers,
-          amount: d.amount,
-          win: tripleWin,
-        });
-      }
-    } else if (d.type === "split") {
-      if (d.numbers.includes(serverHand.number)) {
-        if (message) {
-          message += " + pogodio si i split";
-        } else {
-          message = "Pogodio si split";
-          success = true;
-        }
-        const splitWin = d.amount * 17;
-        win += splitWin;
-        winDetails.push({
-          type: "split",
-          bet: d.numbers,
-          amount: d.amount,
-          win: splitWin,
-        });
-      }
-      clientSplits.push(d.splitId);
-    } else if (d.type === "parity") {
-      if (serverHand.parity !== null && d.value === serverHand.parity) {
-        if (message) {
-          message += " + pogodio si parnost!";
-        } else {
-          message = "Pogodio si parnost (" + d.value + ")!";
-          success = true;
-        }
-        const parityWin = d.amount * 1;
-        win += parityWin;
-        winDetails.push({
-          type: "parity",
-          bet: d.value,
-          amount: d.amount,
-          win: parityWin,
-        });
-      }
-      clientParity = d.value;
-    } else if (d.type === "red" || d.type === "black") {
-      if (d.type === serverHand.color) {
-        if (message) {
-          message += " + pogodio si boju";
-        } else {
-          message = "Pogodio si boju (" + d.type + ")!";
-          success = true;
-        }
-        const colorWin = d.amount * 2;
-        win += colorWin;
-        winDetails.push({
-          type: "color",
-          bet: d.type,
-          amount: d.amount,
-          win: colorWin,
-        });
-      }
-      clientColor = d.type;
-    } else if (d.type === "2x1-1" || d.type === "2x1-2" || d.type === "2x1-3") {
-      if (d.numbers.includes(serverHand.number)) {
-        if (message) {
-          message += " + pogodio si 2x1";
-        } else {
-          message = "Pogodio si 2x1 (" + d.type + ")!";
-          success = true;
-        }
-        const TwoXOneWin = d.amount * 3;
-        win += TwoXOneWin;
-        winDetails.push({
-          type: "2x1",
-          bet: d.type,
-          amount: d.amount,
-          win: TwoXOneWin,
-        });
-      }
-      client2x1 = d.type;
-    } else if (d.type === "1-12" || d.type === "13-24" || d.type === "25-36") {
-      if (d.numbers.includes(serverHand.number)) {
-        if (message) {
-          message += " + pogodio si trećinu table";
-        } else {
-          message = "Pogodio si trećinu (" + d.type + ")!";
-          success = true;
-        }
-        const OneThirdWin = d.amount * 3;
-        win += OneThirdWin;
-        winDetails.push({
-          type: "thirdTable",
-          bet: d.type,
-          amount: d.amount,
-          win: OneThirdWin,
-        });
-      }
-      clientThirdTable = d.type;
-    } else if (d.type === "1-18" || d.type === "19-36") {
-      if (d.numbers.includes(serverHand.number)) {
-        if (message) {
-          message += " + pogodio si polovinu table";
-        } else {
-          message = "Pogodio si polovinu (" + d.type + ")!";
-          success = true;
-        }
-        const HalfWin = d.amount * 2;
-        win += HalfWin;
-        winDetails.push({
-          type: "halfTable",
-          bet: d.type,
-          amount: d.amount,
-          win: HalfWin,
-        });
-      }
-      clientHalf = d.type;
+    // Provera da li je pogodio
+    if (strategy.check(bet, serverHand)) {
+      success = true;
+
+      // Računanje dobitka
+      const winAmount = bet.amount * strategy.multiplier;
+      win += winAmount;
+
+      // Dodavanje detalja
+      winDetails.push(strategy.getWinDetails(bet, winAmount));
+
+      // Poruka
+      const newMessage =
+        typeof strategy.message === "function"
+          ? strategy.message(bet)
+          : strategy.message;
+
+      message = message ? `${message} + ${newMessage}` : newMessage;
     }
   });
 
@@ -509,23 +377,13 @@ function checkGuess(data, serverHand) {
     message = "Kuco sve si promašio :(";
   }
 
-  const totalBet = data.betAmount;
-
   return {
-    success: success,
-    message: message,
-    win: win,
-    totalBet: totalBet,
+    success,
+    message,
+    win,
+    totalBet: data.betAmount,
     winningDetails: winDetails,
-    clientGuess: {
-      number: clientNumbers,
-      parity: clientParity,
-      corner: clientCorners,
-      color: clientColor,
-      client2x1: client2x1,
-      clientThirdTable: clientThirdTable,
-      clientHalf: clientHalf,
-    },
+    clientGuess,
     serverResult: {
       number: serverHand.number,
       parity: serverHand.parity,
@@ -536,6 +394,215 @@ function checkGuess(data, serverHand) {
     at: new Date().toISOString(),
   };
 }
+
+// function checkGuess(data, serverHand) {
+//   console.log("DATA BETS:", data.bets);
+
+//   let message = "";
+//   let success = false;
+//   let win = 0;
+//   let winDetails = [];
+//   let clientNumbers = [];
+//   let clientCorners = [];
+//   let clientSplits = [];
+//   let clientParity = null;
+//   let clientColor = null;
+//   let client2x1 = null;
+//   let clientThirdTable = null;
+//   let clientHalf = null;
+
+//   data.bets.forEach((d) => {
+//     if (d.type === "straight") {
+//       if (d.numbers[0] === serverHand.number) {
+//         message = "Bravo kuco, pogodio si broj";
+//         success = true;
+//         const numberWin = d.amount * 35;
+//         win += numberWin;
+//         winDetails.push({
+//           type: "straight",
+//           bet: d.numbers[0],
+//           amount: d.amount,
+//           winOnNumber: numberWin,
+//         });
+//       }
+//       clientNumbers.push(d.numbers[0]);
+//     } else if (d.type === "corner") {
+//       if (d.numbers.includes(serverHand.number)) {
+//         if (message) {
+//           message += " + pogodio si i corner";
+//         } else {
+//           message = "Pogodio si corner";
+//           success = true;
+//         }
+//         const cornerWin = d.amount * 8;
+//         win += cornerWin;
+//         winDetails.push({
+//           type: "corner",
+//           bet: d.numbers,
+//           amount: d.amount,
+//           win: cornerWin,
+//         });
+//       }
+//       clientCorners.push(d.numbers);
+//     } else if (d.type === "triple") {
+//       if (d.numbers.includes(serverHand.number)) {
+//         if (message) {
+//           message += " + pogodio si i triple";
+//         } else {
+//           message = "Pogodio si triple";
+//           success = true;
+//         }
+//         const tripleWin = d.amount * 11;
+//         win += tripleWin;
+//         winDetails.push({
+//           type: "triple",
+//           bet: d.numbers,
+//           amount: d.amount,
+//           win: tripleWin,
+//         });
+//       }
+//     } else if (d.type === "split") {
+//       if (d.numbers.includes(serverHand.number)) {
+//         if (message) {
+//           message += " + pogodio si i split";
+//         } else {
+//           message = "Pogodio si split";
+//           success = true;
+//         }
+//         const splitWin = d.amount * 17;
+//         win += splitWin;
+//         winDetails.push({
+//           type: "split",
+//           bet: d.numbers,
+//           amount: d.amount,
+//           win: splitWin,
+//         });
+//       }
+//       clientSplits.push(d.splitId);
+//     } else if (d.type === "parity") {
+//       if (serverHand.parity !== null && d.value === serverHand.parity) {
+//         if (message) {
+//           message += " + pogodio si parnost!";
+//         } else {
+//           message = "Pogodio si parnost (" + d.value + ")!";
+//           success = true;
+//         }
+//         const parityWin = d.amount * 1;
+//         win += parityWin;
+//         winDetails.push({
+//           type: "parity",
+//           bet: d.value,
+//           amount: d.amount,
+//           win: parityWin,
+//         });
+//       }
+//       clientParity = d.value;
+//     } else if (d.type === "red" || d.type === "black") {
+//       if (d.type === serverHand.color) {
+//         if (message) {
+//           message += " + pogodio si boju";
+//         } else {
+//           message = "Pogodio si boju (" + d.type + ")!";
+//           success = true;
+//         }
+//         const colorWin = d.amount * 2;
+//         win += colorWin;
+//         winDetails.push({
+//           type: "color",
+//           bet: d.type,
+//           amount: d.amount,
+//           win: colorWin,
+//         });
+//       }
+//       clientColor = d.type;
+//     } else if (d.type === "2x1-1" || d.type === "2x1-2" || d.type === "2x1-3") {
+//       if (d.numbers.includes(serverHand.number)) {
+//         if (message) {
+//           message += " + pogodio si 2x1";
+//         } else {
+//           message = "Pogodio si 2x1 (" + d.type + ")!";
+//           success = true;
+//         }
+//         const TwoXOneWin = d.amount * 3;
+//         win += TwoXOneWin;
+//         winDetails.push({
+//           type: "2x1",
+//           bet: d.type,
+//           amount: d.amount,
+//           win: TwoXOneWin,
+//         });
+//       }
+//       client2x1 = d.type;
+//     } else if (d.type === "1-12" || d.type === "13-24" || d.type === "25-36") {
+//       if (d.numbers.includes(serverHand.number)) {
+//         if (message) {
+//           message += " + pogodio si trećinu table";
+//         } else {
+//           message = "Pogodio si trećinu (" + d.type + ")!";
+//           success = true;
+//         }
+//         const OneThirdWin = d.amount * 3;
+//         win += OneThirdWin;
+//         winDetails.push({
+//           type: "thirdTable",
+//           bet: d.type,
+//           amount: d.amount,
+//           win: OneThirdWin,
+//         });
+//       }
+//       clientThirdTable = d.type;
+//     } else if (d.type === "1-18" || d.type === "19-36") {
+//       if (d.numbers.includes(serverHand.number)) {
+//         if (message) {
+//           message += " + pogodio si polovinu table";
+//         } else {
+//           message = "Pogodio si polovinu (" + d.type + ")!";
+//           success = true;
+//         }
+//         const HalfWin = d.amount * 2;
+//         win += HalfWin;
+//         winDetails.push({
+//           type: "halfTable",
+//           bet: d.type,
+//           amount: d.amount,
+//           win: HalfWin,
+//         });
+//       }
+//       clientHalf = d.type;
+//     }
+//   });
+
+//   if (!success) {
+//     message = "Kuco sve si promašio :(";
+//   }
+
+//   const totalBet = data.betAmount;
+
+//   return {
+//     success: success,
+//     message: message,
+//     win: win,
+//     totalBet: totalBet,
+//     winningDetails: winDetails,
+//     clientGuess: {
+//       number: clientNumbers,
+//       parity: clientParity,
+//       corner: clientCorners,
+//       color: clientColor,
+//       client2x1: client2x1,
+//       clientThirdTable: clientThirdTable,
+//       clientHalf: clientHalf,
+//     },
+//     serverResult: {
+//       number: serverHand.number,
+//       parity: serverHand.parity,
+//       color: serverHand.color,
+//       corners: serverHand.corner,
+//       splits: serverHand.split,
+//     },
+//     at: new Date().toISOString(),
+//   };
+// }
 
 function generateHand() {
   let rng = generateRandomNumber(numberStruct.length);
