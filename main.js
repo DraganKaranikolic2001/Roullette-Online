@@ -1,7 +1,3 @@
-// import { wrap } from "module";
-
-// import { start } from "repl";
-
 const gridCanvas = document.getElementById("table-selection");
 const ctx = gridCanvas.getContext("2d");
 
@@ -16,11 +12,27 @@ let placedChips = [];
 let chipsValue = [];
 let chipValues = {};
 let selectedChipValue;
+let clearBool = false;
+let prevChips = [];
+let prevTotalBet;
 const winDiv = document.getElementById("winAmount");
 const betDiv = document.getElementById("betAmount");
+const btnClear = document.getElementById("clearOne");
 let socket = null;
+let currentChipIndex = 0;
+const VISIBLE_CHIPS = 5;
 
+btnClear.addEventListener("click", (ev) => clear());
 document.getElementById("start").addEventListener("click", (ev) => spin());
+document
+  .getElementById("clearBet")
+  .addEventListener("click", (ev) => clearAll());
+document
+  .getElementById("doubleBet")
+  .addEventListener("click", (ev) => doubleAll());
+document
+  .getElementById("repeatBet")
+  .addEventListener("click", (ev) => repeatBet());
 const chipImage = new Image();
 chipImage.src = "images/chips/chip-active6.png";
 
@@ -54,8 +66,7 @@ function spin() {
     return;
   }
   console.log(socket);
-  // const id = Math.round(Math.random() * 100);
-  // console.log("sending...", id);
+
   const roulTable = document.querySelectorAll(".buttonB");
   roulTable.forEach((r) => {
     // console.log(r);
@@ -70,19 +81,47 @@ function spin() {
   // console.log(dataToSend);
   const data = JSON.stringify(dataToSend);
   socket.send(data);
-
+  prevChips = JSON.parse(JSON.stringify(placedChips)); //deep copy
+  prevTotalBet = totalBet;
   setTimeout(() => {
-    ctx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
-    placedChips.splice(0);
-    winDiv.innerHTML = "";
-    betDiv.innerHTML = " ";
-    totalBet = 0;
+    clearAll();
     const roulTable = document.querySelectorAll(".buttonB");
     roulTable.forEach((r) => {
       r.style.pointerEvents = "all";
     });
     console.log(placedChips);
   }, 6000);
+}
+function clearAll() {
+  ctx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
+  placedChips.splice(0);
+  console.log("Clear post: ", placedChips);
+  console.log("prevChips clear", prevChips);
+  winDiv.innerHTML = "";
+  betDiv.innerHTML = " ";
+  totalBet = 0;
+}
+function doubleAll() {
+  placedChips.forEach((bet) => {
+    bet.amount = bet.amount * 2;
+  });
+  totalBet = totalBet * 2;
+  document.getElementById("betAmount").innerHTML = totalBet;
+  redrawAllChips();
+}
+
+function clear() {
+  btnClear.classList.toggle("activeBut");
+  if (!clearBool) clearBool = true;
+  else clearBool = false;
+  console.log("Bool:", clearBool);
+}
+function repeatBet() {
+  placedChips = JSON.parse(JSON.stringify(prevChips)); //deep copy
+  console.log("rep: ", placedChips);
+  totalBet = prevTotalBet;
+  document.getElementById("betAmount").innerHTML = totalBet;
+  redrawAllChips();
 }
 function handleInitData(data) {
   playerBalance = data.balance;
@@ -95,27 +134,6 @@ function handleInitData(data) {
   initChipSelection();
 }
 
-function createChips(chipValueArray) {
-  const cWrap = document.getElementById("chip-wrapper");
-
-  cWrap.innerHTML = "";
-
-  chipValues = {};
-
-  chipValueArray.forEach((value, index) => {
-    const chip = document.createElement("div");
-    chip.className = "chip";
-    chip.id = `chip${index + 1}`;
-    chip.dataset.chipIndex = index;
-    chip.dataset.chipValue = value;
-    chip.textContent = value;
-
-    cWrap.appendChild(chip);
-
-    chipValues[`chip${index + 1}`] = value;
-  });
-}
-
 function handleSpinResult(data) {
   const imageNumber = data.serverResult.number;
 
@@ -124,9 +142,7 @@ function handleSpinResult(data) {
     updateBalanceDisplay();
     console.log(`Novi balance: ${playerBalance}`);
   }
-
   drawNumberWin(imageNumber);
-
   winDiv.innerHTML = data.win;
 }
 
@@ -281,20 +297,17 @@ function redrawAllChips() {
   });
   // console.log(placedChips);
 }
+
 function handleBetClick(event) {
   const btn = event.target;
   const type = btn.dataset.type;
   const numbers = JSON.parse(btn.dataset.numbers);
-
+  console.log(btn);
   // console.log("KLIK DETALJI");
   // console.log("Tip bet-a:", type);
   // console.log("Broj(evi):", numbers);
   // console.log("X u procentima :", btn.style.left);
   // console.log("Y u procentima :", btn.style.top);
-
-  // Dobijamo poziciju dugmeta
-  const rect = btn.getBoundingClientRect();
-  const canvasRect = gridCanvas.getBoundingClientRect();
 
   let xPercent = parseFloat(btn.dataset.chipX);
   let yPercent = parseFloat(btn.dataset.chipY);
@@ -304,15 +317,31 @@ function handleBetClick(event) {
     (chip) =>
       Math.abs(chip.x - xPercent) < 0.5 && Math.abs(chip.y - yPercent) < 0.5
   );
-
   if (existingChipIndex !== -1) {
-    placedChips[existingChipIndex].amount += selectedChipValue;
-    totalBet += selectedChipValue;
+    if (clearBool === false) {
+      placedChips[existingChipIndex].amount += selectedChipValue;
+      totalBet += selectedChipValue;
+      console.log(placedChips[existingChipIndex].x);
+      console.log(placedChips[existingChipIndex].y);
+    } else if (
+      placedChips[existingChipIndex].amount - selectedChipValue >= 0 &&
+      clearBool === true
+    ) {
+      placedChips[existingChipIndex].amount -= selectedChipValue;
+      totalBet -= selectedChipValue;
+      //obrisi cip :D
+      if (placedChips[existingChipIndex].amount === 0) {
+        placedChips.splice(existingChipIndex, 1);
+      }
+    } else {
+      return;
+    }
+
     // console.log(" Dodajem na postojeći čip:");
     // console.log(- Slika čipa: ${placedChips[existingChipIndex].chipValue} (NE MENJA SE!));
     // console.log(`Novi ukupan iznos: ${placedChips[existingChipIndex].amount}` );
     // console.log(` Dodato: ${selectedChipValue}`);
-  } else {
+  } else if (clearBool === false) {
     totalBet += selectedChipValue;
     const chip = {
       x: xPercent,
@@ -330,16 +359,6 @@ function handleBetClick(event) {
   document.getElementById("betAmount").innerHTML = totalBet;
   // Ponovo crtamo sve čipove
   redrawAllChips();
-
-  // if (type === "straight") {
-  //   console.log(`Kliknuo si direktan bet na broj ${numbers[0]}`);
-  // } else if (type === "split") {
-  //   console.log(`Kliknuo si split bet između ${numbers[0]} i ${numbers[1]}`);
-  // } else if (type === "corner") {
-  //   console.log(`Kliknuo si corner bet na brojeve ${numbers.join(", ")}`);
-  // } else if (type === "triple") {
-  //   console.log(`Kliknuo si triple bet na brojeve ${numbers.join(", ")}`);
-  // }
 }
 
 function initChipSelection() {
@@ -367,7 +386,69 @@ function initChipSelection() {
   });
 }
 
-initChipSelection();
+function createChips(chipValueArray) {
+  const cWrap = document.getElementById("chip-wrapper");
+  cWrap.innerHTML = "";
+  chipValues = {};
+
+  chipValueArray.forEach((value, index) => {
+    const chip = document.createElement("div");
+    chip.className = "chip";
+    chip.id = `chip${index + 1}`;
+    chip.dataset.chipIndex = index;
+    chip.dataset.chipValue = value;
+    chip.textContent = value;
+
+    cWrap.appendChild(chip);
+    chipValues[`chip${index + 1}`] = value;
+  });
+
+  // Resetuj slider
+  currentChipIndex = 0;
+  updateChipSlider(chipValueArray.length);
+}
+function updateChipSlider(totalChips) {
+  const wrapper = document.getElementById("chip-wrapper");
+  const prevBtn = document.getElementById("chip-prev");
+  const nextBtn = document.getElementById("chip-next");
+
+  // Prikaži dugmad samo ako ima više od 5 čipova
+  if (totalChips > VISIBLE_CHIPS) {
+    prevBtn.classList.add("visible");
+    nextBtn.classList.add("visible");
+  } else {
+    prevBtn.classList.remove("visible");
+    nextBtn.classList.remove("visible");
+    wrapper.style.transform = "translateX(0)";
+    return;
+  }
+
+  // Izračunaj offset
+  const chipWidth = 100 / VISIBLE_CHIPS;
+  const offset = currentChipIndex * chipWidth;
+  wrapper.style.transform = `translateX(-${offset}%)`;
+
+  // Omogući/onemogući dugmad
+  prevBtn.disabled = currentChipIndex === 0;
+  nextBtn.disabled = currentChipIndex >= totalChips - VISIBLE_CHIPS;
+}
+
+// Event listeneri za slider dugmad
+document.getElementById("chip-prev").addEventListener("click", () => {
+  if (currentChipIndex > 0) {
+    currentChipIndex--;
+    updateChipSlider(Object.keys(chipValues).length);
+  }
+});
+
+document.getElementById("chip-next").addEventListener("click", () => {
+  const totalChips = Object.keys(chipValues).length;
+  if (currentChipIndex < totalChips - VISIBLE_CHIPS) {
+    currentChipIndex++;
+    updateChipSlider(totalChips);
+  }
+});
+
 function initBetHighlighting() {
   const hitArea = document.getElementById("hitarea");
 

@@ -346,3 +346,5 @@ function createButton(parent, type, numbers, x, y, width, height) {
   btn.addEventListener("click", handleBetClick);
   parent.appendChild(btn);
 }
+
+// pixi js za rulet 

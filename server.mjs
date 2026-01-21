@@ -243,23 +243,7 @@ let gameState = {
   tableLimit: 10000,
   minBet: 10,
   maxBet: 500,
-  availableChips: [10, 20, 50, 100, 200],
-  // enabledBets: {
-  //   straight: true,
-  //   split: true,
-  //   corner: true,
-  //   triple: true,
-  //   red: true,
-  //   black: true,
-  //   "1-12": true,
-  //   "13-24": true,
-  //   "25-36": true,
-  //   "1-18": true,
-  //   "19-36": true,
-  //   "2x1-1": true,
-  //   "2x1-2": true,
-  //   "2x1-3": true,
-  // },
+  availableChips: [10, 20, 50, 100, 200,400,800],
 };
 
 //CONNECTION HANDLER
@@ -282,6 +266,7 @@ wss.on("connection", (ws) => {
   // MESSAGE HANDLER
   ws.on("message", (message) => {
     try {
+      // console.log("Strategije: ", betStrategies);
       const data = JSON.parse(message);
       console.log("Primljena poruka od klijenta:", data);
 
@@ -309,7 +294,7 @@ wss.on("connection", (ws) => {
     } catch (error) {
       console.error("Error parsing JSON:", error.message);
     }
-  }); //DODAO zatvaranje ws.on("message")
+  });
 
   ws.on("close", () => {
     console.log(" Klijent diskonektovan");
@@ -613,4 +598,3 @@ function generateRandomNumber(n) {
   return Math.floor(Math.random() * n);
 }
 // sa servera salje init poruku u kojoj su definisani betovi za cipove i pocetni kredit i dodati mogucnost kao slider za vise cipova da se prikazuju
-// na init poruku da stigne mogucnost da se iksljuce odredjeni betovi (Straight, red/black itd ) da biramo sta da bude ukljuceno sta ne
