@@ -60,6 +60,7 @@ body {
   height: 5%;
   position: absolute;
   bottom: 16%;
+  left: 0%;
 }
 .buttonB {
   position: absolute;
@@ -334,6 +335,18 @@ body {
   border-radius: 2%;
 }
 
+#roulleteTable {
+  position: absolute;
+  top: 4%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+}
+
+#roulleteTable canvas {
+  width: 100%;
+  height: 100%;
+}
 /* .bet-button-corner:hover,
 .bet-button-split:hover,
 .bet-button-triple:hover {

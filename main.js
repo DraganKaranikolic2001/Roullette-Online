@@ -89,6 +89,10 @@ function spin() {
     roulTable.forEach((r) => {
       r.style.pointerEvents = "all";
     });
+    // if( typeof window.resetAll === 'function'){
+    //   window.resetAll();
+    //   console.log("USOH I AST")
+    // }
     console.log(placedChips);
   }, 6000);
 }
@@ -142,8 +146,18 @@ function handleSpinResult(data) {
     updateBalanceDisplay();
     console.log(`Novi balance: ${playerBalance}`);
   }
-  drawNumberWin(imageNumber);
-  winDiv.innerHTML = data.win;
+  
+
+  if (typeof window.spinRouletteWheel === 'function') {
+    window.spinRouletteWheel();
+    console.log("UDJOH");
+  }
+  
+  // Prikaz broja posle 5 sekundi (kada se točak zaustavi)
+  setTimeout(() => {
+    drawNumberWin(imageNumber);
+    winDiv.innerHTML = data.win;
+  }, 5000);
 }
 
 //  NOVA FUNKCIJA - Ažuriraj prikaz balance-a
@@ -194,7 +208,7 @@ async function initGrid() {
   const wrapper = document.querySelector(".table-wrapper");
   gridCanvas.width = wrapper.offsetWidth;
   gridCanvas.height = wrapper.offsetHeight;
-
+ 
   try {
     const initData = await initWebSocket();
     console.log("Stigli podaci", initData);

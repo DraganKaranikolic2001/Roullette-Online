@@ -243,7 +243,7 @@ let gameState = {
   tableLimit: 10000,
   minBet: 10,
   maxBet: 500,
-  availableChips: [10, 20, 50, 100, 200,400,800],
+  availableChips: [10, 20, 50, 100, 200],
 };
 
 //CONNECTION HANDLER
@@ -289,7 +289,7 @@ wss.on("connection", (ws) => {
       ws.send(JSON.stringify(result));
 
       console.log(
-        `Balance update: ${result.totalBet} bet, ${result.win} win, novi balance: ${gameState.currentBalance}`
+        `Balance update: ${result.totalBet} bet, ${result.win} win, novi balance: ${gameState.currentBalance}`,
       );
     } catch (error) {
       console.error("Error parsing JSON:", error.message);
@@ -310,7 +310,7 @@ wss.on("connection", (ws) => {
 ["uncaughtException", "unhandledRejection"].forEach((event) =>
   process.on(event, (err) => {
     console.error(`Problem! event: ${event}, msg: ${err.stack || err}`);
-  })
+  }),
 );
 
 function checkGuess(data, serverHand) {
