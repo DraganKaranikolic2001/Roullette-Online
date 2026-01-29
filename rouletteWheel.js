@@ -6,8 +6,6 @@ let currentRotation = 0;
 let spinSpeed = 0;
 let targetRotation = 0;
 let initialSpeed;
-let widthApp = 400;
-let heightApp = 400;
 let ball;
 let theta;
 let r;
@@ -22,8 +20,8 @@ const INITIAL_STATE = {
 
 function initRouletteWheel() {
   app = new PIXI.Application({
-    width: widthApp,
-    height: heightApp,
+    width: 400,
+    height: 400,
     resolution: window.devicePixelRatio || 1,
     transparent: true,
   });
@@ -71,7 +69,7 @@ function initBall() {
       ball = new PIXI.Sprite(texture);
       ball.anchor.set(0.5);
       ball.x = app.screen.width / 2;
-      ball.y = app.screen.height * 0.1;
+      ball.y = app.screen.height * 0.08;
       INITIAL_STATE.ball.x = ball.x;
       INITIAL_STATE.ball.y = ball.y;
       ball.zIndex = 1;
@@ -91,46 +89,80 @@ function initBall() {
       console.error("Failed to load ball image :", err);
     });
 }
+let bounceFrameCount = 0;
+let inBouncingPhase = false; // ← NOVA ZASTAVICA
 
 function animateBall(delta) {
   if (!ball || !isBallSpinning) return;
-  if (r >= 115) {
+  console.log("R : ", r);
+
+  if (r < 190 && r >= 140 && !inBouncingPhase) {
+    // FAZA 1: Spirala
     r -= 0.03 * delta;
-    angularSpeed *= 0.9995;
+    angularSpeed *= 0.9992;
 
     ball.x = app.screen.width / 2 + r * Math.cos(theta);
     ball.y = app.screen.height / 2 + r * Math.sin(theta);
-  } else if (r < 115 && r > 105) {
-    r -= 0.02 * delta; 
-    angularSpeed *= 0.993; 
 
-    
-    let wobble = 5;
-    let offsetX = Math.sin(theta * 12) * wobble; 
-    let offsetY = Math.cos(theta * 12) * wobble;
+    // Započni bounce fazu kada r padne ispod 140
+    if (r < 140) {
+      inBouncingPhase = true;
+      bounceFrameCount = 0;
+    }
+  } else if (inBouncingPhase) {
+    // FAZA 2: BOUNCE
+    bounceFrameCount++;
+    angularSpeed *= 0.999;
 
-    ball.x = app.screen.width / 2 + r * Math.cos(theta) + offsetX;
-    ball.y = app.screen.height / 2 + r * Math.sin(theta) + offsetY;
+    let totalBounceFrames = 420;
+    let progress = bounceFrameCount / totalBounceFrames;
+
+    let baseR = 110;
+
+    let bounceAmplitude = 40 * (1 - progress);
+    let oscillation = -Math.sin(progress * Math.PI * 3) * bounceAmplitude;
+
+    r = baseR + oscillation;
+
+    console.log(
+      "Frame:",
+      bounceFrameCount,
+      "BaseR:",
+      baseR,
+      "Oscillation:",
+      oscillation.toFixed(1),
+      "Final R:",
+      r.toFixed(1),
+    );
+
+    ball.x = app.screen.width / 2 + r * Math.cos(theta);
+    ball.y = app.screen.height / 2 + r * Math.sin(theta);
+
+    if (bounceFrameCount >= totalBounceFrames) {
+      inBouncingPhase = false;
+      r = 105;
+    }
   } else {
+    // FAZA 3: ZAUSTAVLJANJE
+    console.log("UPAO U BROJ nakon", bounceFrameCount, "frejmova");
+    bounceFrameCount = 0;
+
     angularSpeed = 0;
     r = 105;
-    // ball.x = app.screen.width / 2 + r * Math.cos(theta);
-    // ball.y = app.screen.height / 2 + r * Math.sin(theta);
+    ball.x = app.screen.width / 2 + r * Math.cos(theta);
+    ball.y = app.screen.height / 2 + r * Math.sin(theta);
     isBallSpinning = false;
-    setTimeout(resetAll, 3000);
+    setTimeout(resetAll, 6000);
   }
 
-  // console.log("Ball X : " , ball.x);
-  // console.log("Ball Y : " , ball.y);
   theta -= delta * angularSpeed;
-  // console.log("THETA : ", theta);
 }
 function animateWheel(delta) {
   if (!roulleteWheel || !isSpinning) return;
 
   // Uvek rotira napred
   currentRotation += spinSpeed * delta;
-  console.log("DELTA: ", delta);
+  // console.log("DELTA: ", delta);
 
   let speed70 = initialSpeed * 0.7;
   let speed50 = initialSpeed * 0.5;
@@ -144,7 +176,7 @@ function animateWheel(delta) {
   } else {
     spinSpeed *= 0.9942;
   }
-  console.log("SPIN SPEED : ", spinSpeed);
+  // console.log("SPIN SPEED : ", spinSpeed);
   if (spinSpeed < 0.001) {
     spinSpeed = 0;
     isSpinning = false;
@@ -162,9 +194,9 @@ function spinRouletteWheel() {
     console.log("Spin already in progress");
     return;
   }
-  r = 160;
-  theta = 100;
-  angularSpeed = 0.05;
+  r = 175;
+  theta = Math.random() * Math.PI * 2;
+  angularSpeed = 0.045 + Math.random() * 0.01;
 
   isSpinning = true;
   isBallSpinning = true;
