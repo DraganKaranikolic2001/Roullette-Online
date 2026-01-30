@@ -94,7 +94,7 @@ let inBouncingPhase = false; // ← NOVA ZASTAVICA
 
 function animateBall(delta) {
   if (!ball || !isBallSpinning) return;
-  console.log("R : ", r);
+  // console.log("R : ", r);
 
   if (r < 190 && r >= 140 && !inBouncingPhase) {
     // FAZA 1: Spirala
@@ -124,16 +124,16 @@ function animateBall(delta) {
 
     r = baseR + oscillation;
 
-    console.log(
-      "Frame:",
-      bounceFrameCount,
-      "BaseR:",
-      baseR,
-      "Oscillation:",
-      oscillation.toFixed(1),
-      "Final R:",
-      r.toFixed(1),
-    );
+    // console.log(
+    //   "Frame:",
+    //   bounceFrameCount,
+    //   "BaseR:",
+    //   baseR,
+    //   "Oscillation:",
+    //   oscillation.toFixed(1),
+    //   "Final R:",
+    //   r.toFixed(1),
+    // );
 
     ball.x = app.screen.width / 2 + r * Math.cos(theta);
     ball.y = app.screen.height / 2 + r * Math.sin(theta);
@@ -167,17 +167,25 @@ function animateWheel(delta) {
   let speed70 = initialSpeed * 0.7;
   let speed50 = initialSpeed * 0.5;
   let speed30 = initialSpeed * 0.3;
+  let speed10 = initialSpeed * 0.1;
   if (spinSpeed > speed70) {
     spinSpeed *= 0.9982;
   } else if (spinSpeed > speed50) {
     spinSpeed *= 0.9972;
   } else if (spinSpeed > speed30) {
     spinSpeed *= 0.9962;
-  } else {
+  } else if (spinSpeed > speed10) {
     spinSpeed *= 0.9942;
+  } else {
+    spinSpeed *= 0.9922;
   }
+
   // console.log("SPIN SPEED : ", spinSpeed);
   if (spinSpeed < 0.001) {
+    // ovaj uslov ga vraca na pocetak , da nula bude na 12h, ali ovde ga isece samo
+    if (currentRotation % (Math.PI * 2) != 0) {
+      currentRotation = currentRotation - (currentRotation % (Math.PI * 2));
+    }
     spinSpeed = 0;
     isSpinning = false;
     console.log(
