@@ -59,14 +59,28 @@ function initWebSocket() {
       console.log("Disconected from the web socket server");
   });
 }
+let spinInProgress = false;
 
+// Funkcija za reset spinInProgress - dostupna globalno
+window.resetSpinProgress = function () {
+  spinInProgress = false;
+  const roulTable = document.querySelectorAll(".buttonB");
+  roulTable.forEach((r) => {
+    r.style.pointerEvents = "all";
+  });
+  console.log("Spin progress resetovan");
+};
 function spin() {
   if (!socket || socket.readyState !== WebSocket.OPEN) {
     console.error("Socket nije povezan");
     return;
   }
+  if (spinInProgress) {
+    console.warn("Vrtimo se vec");
+    return;
+  }
   console.log(socket);
-
+  spinInProgress = true;
   const roulTable = document.querySelectorAll(".buttonB");
   roulTable.forEach((r) => {
     r.style.pointerEvents = "none";
@@ -81,15 +95,6 @@ function spin() {
   socket.send(data);
   prevChips = JSON.parse(JSON.stringify(placedChips));
   prevTotalBet = totalBet;
-
-  setTimeout(() => {
-    clearAll();
-    const roulTable = document.querySelectorAll(".buttonB");
-    roulTable.forEach((r) => {
-      r.style.pointerEvents = "all";
-    });
-    console.log(placedChips);
-  }, 6000);
 }
 
 function clearAll() {
