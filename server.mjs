@@ -240,7 +240,7 @@ let numberStruct = [
 // GAME STATE
 let gameState = {
   currentBalance: 5000,
-  tableLimit: 10000,
+  tableLimit: 10000, 
   minBet: 10,
   maxBet: 500,
   availableChips: [10, 20, 50, 100, 200],

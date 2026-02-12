@@ -141,29 +141,30 @@ function handleInitData(data) {
   createChips(chipsValue);
   initChipSelection();
 }
-
+let winPayout = null
 function handleSpinResult(data) {
   const winningNumber = data.serverResult.number;
-
+  winPayout = data.win;
   if (data.newBalance !== undefined) {
     playerBalance = data.newBalance;
     updateBalanceDisplay();
     console.log(`Novi balance: ${playerBalance}`);
   }
 
-  // 🎯 PROSLEĐUJEM WINNING NUMBER funkciji spinRouletteWheel
   if (typeof window.spinRouletteWheel === "function") {
     window.spinRouletteWheel(winningNumber);
-    console.log(`🎯 Vrti rulet ka broju: ${winningNumber}`);
+    console.log(`Vrti rulet ka broju: ${winningNumber}`);
   }
 
   // Prikaz broja posle 5 sekundi (kada se točak zaustavi)
-  setTimeout(() => {
-    drawNumberWin(winningNumber);
-    winDiv.innerHTML = data.win;
-  }, 5000);
+  // setTimeout(() => {}, 5000);
 }
 
+function showWin(number) {
+  drawNumberWin(number);
+  winDiv.innerHTML = winPayout;
+}
+window.showWin = showWin;
 function updateBalanceDisplay() {
   const balanceEl = document.getElementById("balanceAmount");
   if (balanceEl) {

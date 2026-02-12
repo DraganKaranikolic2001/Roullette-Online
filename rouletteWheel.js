@@ -10,8 +10,8 @@ let ball;
 let theta;
 let r;
 let angularSpeed;
-let targetNumber = null; // Broj koji je backend generisao
-let targetAngle = null; // Ciljni ugao za lopticu
+let targetNumber = null;
+let targetAngle = null;
 
 const INITIAL_STATE = {
   ball: {
@@ -20,34 +20,23 @@ const INITIAL_STATE = {
   },
 };
 
-
 const rouletteNumberOrder = [
   0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24,
   16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26,
 ];
 
 const anglePerNumber = (Math.PI * 2) / 37;
-
-
-// U PIXI.js theta=0 je desno (3h pozicija) = broj 34
-// Broj 0 je gore (12h pozicija) = theta = 3π/2
-// Broj 34 je na indeksu 9, dakle offset = -9 * anglePerNumber
-const INDEX_OF_34 = rouletteNumberOrder.indexOf(34); // Indeks broja 34 = 9
-const ANGLE_OFFSET = -INDEX_OF_34 * anglePerNumber; // Offset za theta=0 na broj 34
+const INDEX_OF_34 = rouletteNumberOrder.indexOf(34);
+const ANGLE_OFFSET = -INDEX_OF_34 * anglePerNumber;
 
 const numberAngles = {};
 rouletteNumberOrder.forEach((number, index) => {
-  // Primenjujemo offset da bi theta=0 pokazivao na broj 34 (3h pozicija)
   let angle = index * anglePerNumber + ANGLE_OFFSET;
-
-  // Normalizujemo ugao u opseg [0, 2π)
   angle = ((angle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-
   numberAngles[number] = angle;
 });
 
 function getAngleForNumber(number) {
-  console.log("NIZ SA ZLATOM  ", numberAngles);
   return numberAngles[number] || 0;
 }
 
@@ -106,8 +95,6 @@ function initBall() {
       INITIAL_STATE.ball.x = ball.x;
       INITIAL_STATE.ball.y = ball.y;
       ball.zIndex = 1;
-      // console.log("APPSCREEN", app.screen.width);
-      // console.log("BALL WIDTH : ", ball.width);
       const scale = Math.min(
         app.screen.width / ball.width / 6,
         app.screen.height / ball.height / 6,
@@ -124,57 +111,57 @@ function initBall() {
 
 let bounceFrameCount = 0;
 let inBouncingPhase = false;
+let waitingForAlignment = false;
+
+let activeWheelCallback = null;
+let activeBallCallback = null;
+let resetTimeoutId = null;
 
 function animateBall(delta) {
   if (!ball || !isBallSpinning) return;
 
-  if (r < 190 && r >= 140 && !inBouncingPhase) {
+  if (r < 190 && r >= 140 && !inBouncingPhase && !waitingForAlignment) {
     // FAZA 1: Spirala
-    r -= 0.03 * delta;
-    angularSpeed *= 0.9992;
+    r -= 0.035 * delta;
+    angularSpeed *= 0.9994;
 
     ball.x = app.screen.width / 2 + r * Math.cos(theta);
     ball.y = app.screen.height / 2 + r * Math.sin(theta);
 
-    // Započni bounce fazu kada r padne ispod 140
     if (r < 140) {
-      inBouncingPhase = true;
-      bounceFrameCount = 0;
-
-      // OVDE USMERAVAMO LOPTICU KA CILJNOM BROJU
+      r = 140;
       if (targetNumber !== null) {
         targetAngle = getAngleForNumber(targetNumber);
-
-        // Prilagodi theta da ide ka target uglu
-        // Loptica trenutno ima theta, moramo je usmeriti ka targetAngle
-        // Ali mora da uradi još nekoliko rotacija pre nego što stigne
-        const fullRotations = 2; // Dodatne rotacije za dramatičan efekat
-        const additionalRotation = fullRotations * Math.PI * 2;
-
-        // Normalizuj trenutni theta
-        const normalizedTheta =
-          ((theta % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-
-        // Izračunaj koliko je udaljen targetAngle od trenutnog theta
-        // Loptica ide CCW (negativno), tako da targetAngle treba biti ispred
-        let angleDiff = targetAngle - normalizedTheta;
-
-        // Normalizuj razliku da bude u opsegu [-π, π]
-        if (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
-        if (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
-
-        // Postavi novu ugaoną brzinu tako da loptica stigne tačno na targetAngle
-        // Bounce faza traje 420 frejmova, moramo izračunati brzinu
-        const totalFrames = 420;
-        const targetThetaFinal = theta - additionalRotation + angleDiff;
-
-        // Novaчугаона brzina će polako usporavati
-        // Jednostavnije rešenje: direktno targetiramo finalni ugao
-        // console.log(`Current theta: ${theta.toFixed(2)}, Target final theta: ${targetThetaFinal.toFixed(2)}`);
+        waitingForAlignment = true;
       }
     }
+  } else if (waitingForAlignment) {
+    // FAZA 2: Čekanje na alignment
+    const normalizedTheta =
+      ((theta % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+
+    if (targetNumber !== null) {
+      targetAngle = getAngleForNumber(targetNumber);
+    }
+
+    let angleDiff = normalizedTheta - targetAngle;
+
+    if (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+    if (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+    const absoluteDiff = Math.abs(angleDiff);
+
+    if (absoluteDiff < 0.5) {
+      inBouncingPhase = true;
+      waitingForAlignment = false;
+      bounceFrameCount = 0;
+    } else {
+      r = 140;
+      ball.x = app.screen.width / 2 + r * Math.cos(theta);
+      ball.y = app.screen.height / 2 + r * Math.sin(theta);
+    }
   } else if (inBouncingPhase) {
-    // FAZA 2: BOUNCE sa targetiranjem
+    // FAZA 3: Bounce
     bounceFrameCount++;
 
     const totalBounceFrames = 420;
@@ -185,34 +172,28 @@ function animateBall(delta) {
     let oscillation = -Math.sin(progress * Math.PI * 3) * bounceAmplitude;
     r = baseR + oscillation;
 
-    // Postepeno usmeravaj theta ka targetAngle
     if (targetAngle !== null) {
-      // Normalizuj theta
       const normalizedTheta =
         ((theta % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-
-      // Izračunaj razliku do cilja (u CW smeru, jer loptica ide CCW)
       let angleDiff = normalizedTheta - targetAngle;
 
-      // Normalizuj razliku
       if (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
       if (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
 
-      // Postepeno smanjuj ugaonu brzinu i usmeravaj ka cilju
-      // U poslednjoj trećini bouncinga, tačno cilja broj
-      if (progress > 0.66) {
-        // Precision mode - veoma sporo prilagođavaj ka tačnom uglu
-        const correctionFactor = (0.05 * (progress - 0.66)) / 0.34; // 0 do 0.05
-        angularSpeed *= 0.999 - correctionFactor;
+      if (progress > 0.3) {
+        // Bazna korekcija (30-80% progresa)
+        let correctionFactor = 0.025 * ((progress - 0.3) / 0.7);
 
-        // Direktna korekcija theta ka targetAngle
+        if (progress > 0.8) {
+          const finalPhase = (progress - 0.8) / 0.2; // 0 do 1
+          correctionFactor += finalPhase * 0.1; // Dodaj do 0.1 ekstra
+        }
+
         theta -= angleDiff * correctionFactor;
-      } else {
-        // Normalno usporavanje
-        angularSpeed *= 0.999;
       }
+
+      angularSpeed *= 0.999;
     } else {
-      // Nema target broja, normalno usporavanje
       angularSpeed *= 0.999;
     }
 
@@ -223,67 +204,73 @@ function animateBall(delta) {
       inBouncingPhase = false;
       r = 105;
 
-      //  FINALNA KOREKCIJA: Postavi theta tačno na targetAngle
       if (targetAngle !== null) {
-        theta = targetAngle;
+        const normalizedTheta =
+          ((theta % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+        let angleDiff = normalizedTheta - targetAngle;
+
+        if (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+        if (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+        const finalError = Math.abs(angleDiff);
+
+        // Samo ako je greška > 0.05 radijana (2.8°), koristi hard snap
+        if (finalError > 0.05) {
+          console.log(
+            ` Finalna korekcija: ${(finalError * 57.3).toFixed(1)}° → 0°`,
+          );
+          theta = targetAngle;
+        } else {
+          console.log(`Perfektno! Greška: ${(finalError * 57.3).toFixed(2)}°`);
+        }
       }
+      if (typeof showWin === "function") {
+        window.showWin(targetNumber);
+      }
+      ball.x = app.screen.width / 2 + r * Math.cos(theta);
+      ball.y = app.screen.height / 2 + r * Math.sin(theta);
+
+      isBallSpinning = false;
+      angularSpeed = 0;
+
+      //RESET nakon 6 sekundi
+      resetTimeoutId = setTimeout(resetAll, 6000);
     }
-  } else {
-    // FAZA 3: ZAUSTAVLJANJE
-    // console.log("UPAO U BROJ nakon", bounceFrameCount, "frejmova");
-    bounceFrameCount = 0;
-
-    angularSpeed = 0;
-    r = 105;
-
-    // Finalna pozicija
-    ball.x = app.screen.width / 2 + r * Math.cos(theta);
-    ball.y = app.screen.height / 2 + r * Math.sin(theta);
-    isBallSpinning = false;
-
-    setTimeout(resetAll, 6000);
   }
 
-  // Nastavi kretanje loptice CCW
   theta -= delta * angularSpeed;
 }
 
 let targetStopRotation = 0;
+
 function animateWheel(delta) {
   if (!roulleteWheel || !isSpinning) return;
 
   const remainingDistance = targetStopRotation - currentRotation;
 
-  // Ako smo stigli - STOP
   if (remainingDistance <= 0.001) {
     currentRotation = targetStopRotation;
     roulleteWheel.rotation = 0;
     spinSpeed = 0;
     isSpinning = false;
-    app.ticker.remove(animateWheel);
-    console.log("ZAUSTAVLJENO tačno na 12h");
+
     return;
   }
 
   let decelerationFactor;
 
   if (remainingDistance > Math.PI * 4) {
-    //sporo usporavanje
     decelerationFactor = 0.998;
   } else if (remainingDistance > Math.PI * 2) {
-    // umereno usporavanje
     decelerationFactor = 0.996;
   } else if (remainingDistance > Math.PI) {
-    //brže usporavanje
     decelerationFactor = 0.993;
   } else {
-    //najbrže usporavanje
     decelerationFactor = 0.99;
   }
 
   spinSpeed *= decelerationFactor;
 
-  // Obračunaj sledeći korak
   const nextStep = spinSpeed * delta;
 
   if (remainingDistance < 0.1 && nextStep > remainingDistance) {
@@ -298,11 +285,24 @@ function animateWheel(delta) {
 
 function spinRouletteWheel(winningNumber) {
   if (isSpinning) {
+    console.warn("spin već u toku");
     return;
   }
 
-  // target broj
+  if (resetTimeoutId) {
+    clearTimeout(resetTimeoutId);
+    resetTimeoutId = null;
+  }
+
+  app.ticker.remove(animateWheel);
+  app.ticker.remove(animateBall);
+
+  // Reset state
   targetNumber = winningNumber;
+  bounceFrameCount = 0;
+  inBouncingPhase = false;
+  waitingForAlignment = false;
+  targetAngle = null;
 
   const rotations = 4;
   targetStopRotation = rotations * Math.PI * 2;
@@ -318,6 +318,7 @@ function spinRouletteWheel(winningNumber) {
 
   spinSpeed = 0.25;
   initialSpeed = spinSpeed;
+
   app.ticker.add(animateWheel);
   app.ticker.add(animateBall);
 }
@@ -327,8 +328,15 @@ if (document.readyState === "loading") {
 } else {
   initRouletteWheel();
 }
-
 function resetAll() {
+  if (resetTimeoutId) {
+    clearTimeout(resetTimeoutId);
+    resetTimeoutId = null;
+  }
+
+  app.ticker.remove(animateWheel);
+  app.ticker.remove(animateBall);
+
   currentRotation = 0;
   if (roulleteWheel) {
     roulleteWheel.rotation = 0;
@@ -339,16 +347,20 @@ function resetAll() {
     ball.y = INITIAL_STATE.ball.y;
   }
 
-  // Reset target values
   targetNumber = null;
   targetAngle = null;
   inBouncingPhase = false;
+  waitingForAlignment = false;
   bounceFrameCount = 0;
-
-  if(typeof window.clearAll=== 'function'){
+  isSpinning = false;
+  isBallSpinning = false;
+  spinSpeed = 0;
+  angularSpeed = 0;
+  ctxNum.clearRect(0, 0, canvas.width, canvas.height);
+  if (typeof window.clearAll === "function") {
     window.clearAll();
   }
-   if(typeof window.resetSpinProgress === 'function'){
+  if (typeof window.resetSpinProgress === "function") {
     window.resetSpinProgress();
   }
 }
