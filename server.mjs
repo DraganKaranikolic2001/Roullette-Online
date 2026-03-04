@@ -336,7 +336,7 @@ function checkGuess(data, serverHand) {
     if (strategy.storeClient) {
       strategy.storeClient(bet, clientGuess);
     }
-
+   
     // Provera da li je pogodio
     if (strategy.check(bet, serverHand)) {
       success = true;

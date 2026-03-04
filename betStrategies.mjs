@@ -47,19 +47,7 @@ export const betStrategies = {
       win: winAmount,
     }),
   },
-  parity: {
-    multiplier: 2,
-    check: (bet, serverHand) =>
-      serverHand.parity !== null && bet.value === serverHand.parity,
-    message: "Bravo pogodio si parity",
-    storeClient: (bet, clientGuess) => (clientGuess.parity = bet.parity),
-    getWinDetails: (bet, winAmount) => ({
-      type: "parity",
-      bet: bet.value,
-      amount: bet.amount,
-      win: winAmount,
-    }),
-  },
+
   red: {
     multiplier: 2,
     check: (bet, serverHand) => bet.type === serverHand.color,
@@ -75,10 +63,34 @@ export const betStrategies = {
   black: {
     multiplier: 2,
     check: (bet, serverHand) => bet.type === serverHand.color,
-    message: "Bravo pogodio si corner",
+    message: "Bravo pogodio si color",
     storeClient: (bet, clientGuess) => (clientGuess.color = bet.type),
     getWinDetails: (bet, winAmount) => ({
       type: "color",
+      bet: bet.type,
+      amount: bet.amount,
+      win: winAmount,
+    }),
+  },
+  odd: {
+    multiplier: 2,
+    check: (bet, serverHand) => bet.type === serverHand.parity,
+    message: "Bravo pogodio si parity",
+    storeClient: (bet, clientGuess) => (clientGuess.parity = bet.type),
+    getWinDetails: (bet, winAmount) => ({
+      type: "parity",
+      bet: bet.type,
+      amount: bet.amount,
+      win: winAmount,
+    }),
+  },
+  even: {
+    multiplier: 2,
+    check: (bet, serverHand) => bet.type === serverHand.parity,
+    message: "Bravo pogodio si parity",
+    storeClient: (bet, clientGuess) => (clientGuess.parity = bet.type),
+    getWinDetails: (bet, winAmount) => ({
+      type: "parity",
       bet: bet.type,
       amount: bet.amount,
       win: winAmount,

@@ -141,7 +141,7 @@ function handleInitData(data) {
   createChips(chipsValue);
   initChipSelection();
 }
-let winPayout = null
+let winPayout = null;
 function handleSpinResult(data) {
   const winningNumber = data.serverResult.number;
   winPayout = data.win;
@@ -205,6 +205,7 @@ function drawNumberWin(n) {
 }
 
 async function initGrid() {
+  resize();
   const wrapper = document.querySelector(".table-wrapper");
   gridCanvas.width = wrapper.offsetWidth;
   gridCanvas.height = wrapper.offsetHeight;
@@ -299,8 +300,8 @@ function handleBetClick(event) {
   const btn = event.target;
   const type = btn.dataset.type;
   const numbers = JSON.parse(btn.dataset.numbers);
-  console.log(btn);
-
+  // console.log(btn);
+  // console.log("TIP : ",type)
   let xPercent = parseFloat(btn.dataset.chipX);
   let yPercent = parseFloat(btn.dataset.chipY);
 
@@ -440,7 +441,7 @@ function initBetHighlighting() {
   }
 
   const complexBets = hitArea.querySelectorAll(
-    ".bet-button-corner, .bet-button-split, .bet-button-triple, .bet-button-25-36, .bet-button-1-12, .bet-button-13-24, .bet-button-black, .bet-button-red, .bet-button-1-18, .bet-button-19-36, .bet-button-2x1-1, .bet-button-2x1-2, .bet-button-2x1-3",
+    ".bet-button-corner, .bet-button-split, .bet-button-triple, .bet-button-25-36, .bet-button-1-12, .bet-button-13-24, .bet-button-black, .bet-button-red, .bet-button-1-18, .bet-button-19-36, .bet-button-2x1-1, .bet-button-2x1-2, .bet-button-2x1-3,.bet-button-even,.bet-button-odd",
   );
 
   complexBets.forEach((btn) => {
