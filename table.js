@@ -1,3 +1,62 @@
+let _hitAreaClickHandler = null;
+let _hitAreaMouseEnterHandler = null;
+let _hitAreaMouseLeaveHandler = null;
+
+function attachHitAreaListeners(hitArea) {
+  // Ukloni stare listenere pre nego što ih dodamo (sigurno kad se poziva više puta)
+  if (_hitAreaClickHandler) {
+    hitArea.removeEventListener("click", _hitAreaClickHandler);
+    hitArea.removeEventListener("mouseover", _hitAreaMouseEnterHandler);
+    hitArea.removeEventListener("mouseout", _hitAreaMouseLeaveHandler);
+  }
+
+  // CLICK – delegiran na hitArea
+  _hitAreaClickHandler = function (event) {
+    const btn = event.target.closest(".buttonB");
+    if (!btn) return;
+    handleBetClick({ target: btn });
+  };
+
+  // MOUSEOVER – za highlighting straight betova
+  _hitAreaMouseEnterHandler = function (event) {
+    const btn = event.target.closest(
+      ".bet-button-corner, .bet-button-split, .bet-button-triple, " +
+        ".bet-button-25-36, .bet-button-1-12, .bet-button-13-24, " +
+        ".bet-button-black, .bet-button-red, .bet-button-1-18, " +
+        ".bet-button-19-36, .bet-button-2x1-1, .bet-button-2x1-2, " +
+        ".bet-button-2x1-3, .bet-button-even, .bet-button-odd",
+    );
+    if (!btn) return;
+
+    const nums = JSON.parse(btn.dataset.numbers);
+    nums.forEach((num) => {
+      const straight = findStraightButton(hitArea, num);
+      if (straight) straight.classList.add("highlighted");
+    });
+  };
+
+  // MOUSEOUT – ukloni highlight
+  _hitAreaMouseLeaveHandler = function (event) {
+    // Provjeri da li smo zaista izašli iz dugmeta (ne samo ušli u child)
+    const btn = event.target.closest(".buttonB");
+    if (!btn) return;
+    hitArea
+      .querySelectorAll(".bet-button-straight.highlighted")
+      .forEach((el) => el.classList.remove("highlighted"));
+  };
+
+  hitArea.addEventListener("click", _hitAreaClickHandler);
+  hitArea.addEventListener("mouseover", _hitAreaMouseEnterHandler);
+  hitArea.addEventListener("mouseout", _hitAreaMouseLeaveHandler);
+}
+function findStraightButton(hitArea, number) {
+  // Traži straight dugme po data-numbers atributu (cache-ovano iterovanje)
+  for (const btn of hitArea.querySelectorAll(".bet-button-straight")) {
+    if (JSON.parse(btn.dataset.numbers)[0] === number) return btn;
+  }
+  return null;
+}
+
 function createBettingZones() {
   // const w = gridCanvas.width;
   // const h = gridCanvas.height;
@@ -35,6 +94,8 @@ function createBettingZones() {
     }
     return array;
   }
+
+  attachHitAreaListeners(hitArea);
   // createButton(hitArea,"straight",1,startX+cellWidth+0.5,startY+2*cellHeight+0.5,cellWidth,cellHeight);
   // 0 kao dugme
   createButton(hitArea, "straight", [0], 0.5, 1.5, cellWidth, cellHeight * 3.1);
@@ -92,7 +153,7 @@ function createBettingZones() {
         xSplit = xSplit + cellWidth + gapX / 1.565;
       }
       if (row === 0) {
-        y = startY + 2 * cellHeight-2.4;
+        y = startY + 2 * cellHeight - 2.4;
       } else {
         y = startY + cellHeight - 3.3;
       }
@@ -129,7 +190,7 @@ function createBettingZones() {
       } else if (row === 1) {
         y = startY + (2 - row) * cellHeight + 2;
       } else {
-        y = startY + (2 - row) * cellHeight +0.5;
+        y = startY + (2 - row) * cellHeight + 0.5;
       }
 
       let splitWidth = cellWidth / 3;
@@ -163,7 +224,7 @@ function createBettingZones() {
       }
       let y;
       if (row === 0) {
-        y = startY + 2 * cellHeight-2.4 ;
+        y = startY + 2 * cellHeight - 2.4;
       } else {
         y = startY + cellHeight - 3.3;
       }
@@ -185,7 +246,7 @@ function createBettingZones() {
     "split",
     [0, 1],
     startX - 1,
-    startY + 2 * cellHeight+2,
+    startY + 2 * cellHeight + 2,
     cellWidth / 2.5,
     cellHeight / 1.3,
   );
@@ -207,7 +268,7 @@ function createBettingZones() {
     "split",
     [0, 3],
     startX - 1,
-    startY +0.5,
+    startY + 0.5,
     cellWidth / 2.5,
     cellHeight / 1.3,
   );
@@ -218,7 +279,7 @@ function createBettingZones() {
     "triple",
     [0, 1, 2],
     startX - 0.8,
-    startY + 2 * cellHeight -2.4,
+    startY + 2 * cellHeight - 2.4,
     cellWidth / 3,
     cellHeight / 2.3,
   );
@@ -350,7 +411,7 @@ function createBettingZones() {
     cellWidth * 2.1,
     cellHeight,
   );
-  createButtonText(
+  createButton(
     hitArea,
     "odd",
     retOddArray(),
@@ -358,8 +419,9 @@ function createBettingZones() {
     startY + 4 * cellHeight + 2.2,
     cellWidth * 2.1,
     cellHeight,
+    "odd",
   );
-  createButtonText(
+  createButton(
     hitArea,
     "even",
     retEvenArray(),
@@ -367,10 +429,20 @@ function createBettingZones() {
     startY + 4 * cellHeight + 2.2,
     cellWidth * 2.1,
     cellHeight,
+    "even",
   );
 }
 
-function createButton(parent, type, numbers, x, y, width, height) {
+function createButton(
+  parent,
+  type,
+  numbers,
+  x,
+  y,
+  width,
+  height,
+  label = null,
+) {
   const btn = document.createElement("button");
   btn.className = `buttonB bet-button-${type}`;
   btn.dataset.type = type;
@@ -378,41 +450,21 @@ function createButton(parent, type, numbers, x, y, width, height) {
 
   btn.dataset.chipX = x + width / 2;
   btn.dataset.chipY = y + height / 2;
-  btn.style.position = "absolute";
-  btn.style.left = `${x}%`;
-  btn.style.top = `${y}%`;
-  btn.style.width = `${width - 0.3}%`;
-  btn.style.height = `${height - 0.5}%`;
-  btn.style.padding = "0.2%";
-  btn.addEventListener("click", handleBetClick);
-  parent.appendChild(btn);
-}
-function createButtonText(parent, type, numbers, x, y, width, height) {
-  const btn = document.createElement("BUtton");
-  btn.className = `buttonB bet-button-${type}`;
-  btn.dataset.type = type;
-  btn.dataset.numbers = JSON.stringify(numbers);
-
-  if (type === "odd") {
-    btn.innerHTML = "ODD";
-    console.log("EVO ME U ODD");
-  } else {
-    btn.innerHTML = "EVEN";
+  btn.style.cssText = `
+    position: absolute;
+    left : ${x}%;
+    top: ${y}%;
+    width : ${width - 0.3}%;
+    height: ${height - 0.5}%;
+    padding : 0.2%;
+  `;
+  if (label) {
+    btn.innerHTML = label.toUpperCase();
+    btn.style.color = "white";
+    btn.style.fontSize = "9cqh";
+    btn.style.fontWeight = "bold";
   }
-  btn.style.color = "white";
-  btn.style.fontSize = "9cqh";
-  btn.style.fontWeight = "bold";
-  btn.dataset.chipX = x + width / 2;
-  btn.dataset.chipY = y + height / 2;
-  btn.style.position = "absolute";
-  btn.style.left = `${x}%`;
-  btn.style.top = `${y}%`;
-  btn.style.width = `${width - 0.3}%`;
-  console.log("BTN", btn.style.width);
-  btn.style.height = `${height - 0.5}%`;
-  console.log("BTN H", btn.style.height);
-  btn.style.padding = "0.2%";
-  btn.addEventListener("click", handleBetClick);
+
   parent.appendChild(btn);
 }
 
@@ -447,3 +499,5 @@ function resize() {
 }
 
 window.addEventListener("resize", resize);
+
+//info deo

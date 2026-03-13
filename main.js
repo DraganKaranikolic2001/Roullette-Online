@@ -33,6 +33,15 @@ document
 document
   .getElementById("repeatBet")
   .addEventListener("click", (ev) => repeatBet());
+
+document.getElementById("close-btn").addEventListener("click",(ev)=>{
+  document.getElementById("help-screen").style.visibility="hidden";
+});
+
+document.getElementById("infoBtn").addEventListener("click",(ev)=>{
+  document.getElementById("help-screen").style.visibility="visible";
+});
+
 const chipImage = new Image();
 chipImage.src = "images/chips/chip-active6.png";
 
@@ -219,7 +228,7 @@ async function initGrid() {
 
   createBettingZones();
 
-  setTimeout(initBetHighlighting, 100);
+  
 
   const lineCanvas = document.getElementById("lineCanvas");
   const ctxLine = lineCanvas.getContext("2d");
@@ -257,6 +266,7 @@ async function initGrid() {
   ctxLine.stroke();
 }
 initGrid();
+
 
 function drawChip(x, y, amount, chipValue) {
   const pixelX = (x / 100) * gridCanvas.width;
@@ -425,44 +435,44 @@ document.getElementById("chip-next").addEventListener("click", () => {
   }
 });
 
-function initBetHighlighting() {
-  const hitArea = document.getElementById("hitarea");
+// function initBetHighlighting() {
+//   const hitArea = document.getElementById("hitarea");
 
-  function findStraightButton(number) {
-    const buttons = hitArea.querySelectorAll(".bet-button-straight");
+//   function findStraightButton(number) {
+//     const buttons = hitArea.querySelectorAll(".bet-button-straight");
 
-    for (let btn of buttons) {
-      const numbers = JSON.parse(btn.dataset.numbers);
-      if (numbers[0] === number) {
-        return btn;
-      }
-    }
-    return null;
-  }
+//     for (let btn of buttons) {
+//       const numbers = JSON.parse(btn.dataset.numbers);
+//       if (numbers[0] === number) {
+//         return btn;
+//       }
+//     }
+//     return null;
+//   }
 
-  const complexBets = hitArea.querySelectorAll(
-    ".bet-button-corner, .bet-button-split, .bet-button-triple, .bet-button-25-36, .bet-button-1-12, .bet-button-13-24, .bet-button-black, .bet-button-red, .bet-button-1-18, .bet-button-19-36, .bet-button-2x1-1, .bet-button-2x1-2, .bet-button-2x1-3,.bet-button-even,.bet-button-odd",
-  );
+//   const complexBets = hitArea.querySelectorAll(
+//     ".bet-button-corner, .bet-button-split, .bet-button-triple, .bet-button-25-36, .bet-button-1-12, .bet-button-13-24, .bet-button-black, .bet-button-red, .bet-button-1-18, .bet-button-19-36, .bet-button-2x1-1, .bet-button-2x1-2, .bet-button-2x1-3,.bet-button-even,.bet-button-odd",
+//   );
 
-  complexBets.forEach((btn) => {
-    btn.addEventListener("mouseenter", function () {
-      const numbers = JSON.parse(this.dataset.numbers);
+//   complexBets.forEach((btn) => {
+//     btn.addEventListener("mouseenter", function () {
+//       const numbers = JSON.parse(this.dataset.numbers);
 
-      numbers.forEach((num) => {
-        const straightBtn = findStraightButton(num);
-        if (straightBtn) {
-          straightBtn.classList.add("highlighted");
-        }
-      });
-    });
+//       numbers.forEach((num) => {
+//         const straightBtn = findStraightButton(num);
+//         if (straightBtn) {
+//           straightBtn.classList.add("highlighted");
+//         }
+//       });
+//     });
 
-    btn.addEventListener("mouseleave", function () {
-      const highlightedButtons = hitArea.querySelectorAll(
-        ".bet-button-straight.highlighted",
-      );
-      highlightedButtons.forEach((btn) => {
-        btn.classList.remove("highlighted");
-      });
-    });
-  });
-}
+//     btn.addEventListener("mouseleave", function () {
+//       const highlightedButtons = hitArea.querySelectorAll(
+//         ".bet-button-straight.highlighted",
+//       );
+//       highlightedButtons.forEach((btn) => {
+//         btn.classList.remove("highlighted");
+//       });
+//     });
+//   });
+// }
