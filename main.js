@@ -1,6 +1,5 @@
 const gridCanvas = document.getElementById("table-selection");
 const ctx = gridCanvas.getContext("2d");
-
 const canvas = document.getElementById("canvasNumber");
 const ctxNum = canvas.getContext("2d");
 let totalBet = 0;
@@ -34,17 +33,18 @@ document
   .getElementById("repeatBet")
   .addEventListener("click", (ev) => repeatBet());
 
-document.getElementById("close-btn").addEventListener("click",(ev)=>{
-  document.getElementById("help-screen").style.visibility="hidden";
+document.getElementById("close-btn").addEventListener("click", (ev) => {
+  document.getElementById("help-screen").style.visibility = "hidden";
 });
 
-document.getElementById("infoBtn").addEventListener("click",(ev)=>{
-  document.getElementById("help-screen").style.visibility="visible";
+document.getElementById("infoBtn").addEventListener("click", (ev) => {
+  document.getElementById("help-screen").style.visibility = "visible";
 });
 
 const chipImage = new Image();
 chipImage.src = "images/chips/chip-active6.png";
 
+//uspostavlja WS konekciju i vraca Promise sa incijalnim podacima
 function initWebSocket() {
   return new Promise((resolve, reject) => {
     socket = new WebSocket("ws://localhost:1337");
@@ -70,7 +70,7 @@ function initWebSocket() {
 }
 let spinInProgress = false;
 
-// Funkcija za reset spinInProgress - dostupna globalno
+// funkcija za reset spinInProgress - dostupna globalno
 window.resetSpinProgress = function () {
   spinInProgress = false;
   const roulTable = document.querySelectorAll(".buttonB");
@@ -79,6 +79,7 @@ window.resetSpinProgress = function () {
   });
   console.log("Spin progress resetovan");
 };
+//slanje podataka
 function spin() {
   if (!socket || socket.readyState !== WebSocket.OPEN) {
     console.error("Socket nije povezan");
@@ -105,7 +106,7 @@ function spin() {
   prevChips = JSON.parse(JSON.stringify(placedChips));
   prevTotalBet = totalBet;
 }
-
+//brisanje svih cipova sa table
 function clearAll() {
   ctx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
   placedChips.splice(0);
@@ -115,7 +116,7 @@ function clearAll() {
   betDiv.innerHTML = " ";
   totalBet = 0;
 }
-
+//dupliranje svih cipova na tabli
 function doubleAll() {
   placedChips.forEach((bet) => {
     bet.amount = bet.amount * 2;
@@ -124,14 +125,14 @@ function doubleAll() {
   document.getElementById("betAmount").innerHTML = totalBet;
   redrawAllChips();
 }
-
+//mogucnost klikom skidanja cipa
 function clear() {
   btnClear.classList.toggle("activeBut");
   if (!clearBool) clearBool = true;
   else clearBool = false;
   console.log("Bool:", clearBool);
 }
-
+//ponavljanje prethodnog beta
 function repeatBet() {
   placedChips = JSON.parse(JSON.stringify(prevChips));
   console.log("rep: ", placedChips);
@@ -139,7 +140,7 @@ function repeatBet() {
   document.getElementById("betAmount").innerHTML = totalBet;
   redrawAllChips();
 }
-
+//upravljanje inicijalnim podataka sa servera
 function handleInitData(data) {
   playerBalance = data.balance;
   tableLimit = data.tableLimit;
@@ -151,6 +152,7 @@ function handleInitData(data) {
   initChipSelection();
 }
 let winPayout = null;
+//upravljanje podacima nakon obrade beta
 function handleSpinResult(data) {
   const winningNumber = data.serverResult.number;
   winPayout = data.win;
@@ -186,7 +188,7 @@ function updateBalanceDisplay() {
     }, 500);
   }
 }
-
+//crtanje dobitnog broja preko canvasa
 function drawNumberWin(n) {
   const numberObject = numbers.find((num) => num.id === n);
 
@@ -212,7 +214,7 @@ function drawNumberWin(n) {
 
   image.src = numberObject.src;
 }
-
+//inicijalizacija grida(inicijalni podaci,bet zone i maska button dela)
 async function initGrid() {
   resize();
   const wrapper = document.querySelector(".table-wrapper");
@@ -227,8 +229,6 @@ async function initGrid() {
   }
 
   createBettingZones();
-
-  
 
   const lineCanvas = document.getElementById("lineCanvas");
   const ctxLine = lineCanvas.getContext("2d");
@@ -267,7 +267,7 @@ async function initGrid() {
 }
 initGrid();
 
-
+//crtanje cipa na tabli
 function drawChip(x, y, amount, chipValue) {
   const pixelX = (x / 100) * gridCanvas.width;
   const pixelY = (y / 100) * gridCanvas.height;
@@ -297,7 +297,6 @@ function drawChip(x, y, amount, chipValue) {
   ctx.fillStyle = "#000000";
   ctx.fillText(amount, pixelX, textY);
 }
-
 function redrawAllChips() {
   ctx.clearRect(0, 0, gridCanvas.width, gridCanvas.height);
 
@@ -305,7 +304,7 @@ function redrawAllChips() {
     drawChip(chip.x, chip.y, chip.amount, chip.chipValue);
   });
 }
-
+//funkcija koja realizuje klik dugmeta za bet(crtanje cipa, racunanje beta )
 function handleBetClick(event) {
   const btn = event.target;
   const type = btn.dataset.type;
@@ -354,7 +353,7 @@ function handleBetClick(event) {
   document.getElementById("betAmount").innerHTML = totalBet;
   redrawAllChips();
 }
-
+//inicijalizacija cipova
 function initChipSelection() {
   const chips = document.querySelectorAll(".chip");
   if (chips.length === 0) {
@@ -375,7 +374,7 @@ function initChipSelection() {
     });
   });
 }
-
+//kreiranje cipova u zavisnosti od toga sta je server poslao
 function createChips(chipValueArray) {
   const cWrap = document.getElementById("chip-wrapper");
   cWrap.innerHTML = "";
@@ -396,7 +395,7 @@ function createChips(chipValueArray) {
   currentChipIndex = 0;
   updateChipSlider(chipValueArray.length);
 }
-
+//kreiranje slidera za cipove ako ih ima vise od 5 pa ne mogu svi stati
 function updateChipSlider(totalChips) {
   const wrapper = document.getElementById("chip-wrapper");
   const prevBtn = document.getElementById("chip-prev");
@@ -434,45 +433,3 @@ document.getElementById("chip-next").addEventListener("click", () => {
     updateChipSlider(totalChips);
   }
 });
-
-// function initBetHighlighting() {
-//   const hitArea = document.getElementById("hitarea");
-
-//   function findStraightButton(number) {
-//     const buttons = hitArea.querySelectorAll(".bet-button-straight");
-
-//     for (let btn of buttons) {
-//       const numbers = JSON.parse(btn.dataset.numbers);
-//       if (numbers[0] === number) {
-//         return btn;
-//       }
-//     }
-//     return null;
-//   }
-
-//   const complexBets = hitArea.querySelectorAll(
-//     ".bet-button-corner, .bet-button-split, .bet-button-triple, .bet-button-25-36, .bet-button-1-12, .bet-button-13-24, .bet-button-black, .bet-button-red, .bet-button-1-18, .bet-button-19-36, .bet-button-2x1-1, .bet-button-2x1-2, .bet-button-2x1-3,.bet-button-even,.bet-button-odd",
-//   );
-
-//   complexBets.forEach((btn) => {
-//     btn.addEventListener("mouseenter", function () {
-//       const numbers = JSON.parse(this.dataset.numbers);
-
-//       numbers.forEach((num) => {
-//         const straightBtn = findStraightButton(num);
-//         if (straightBtn) {
-//           straightBtn.classList.add("highlighted");
-//         }
-//       });
-//     });
-
-//     btn.addEventListener("mouseleave", function () {
-//       const highlightedButtons = hitArea.querySelectorAll(
-//         ".bet-button-straight.highlighted",
-//       );
-//       highlightedButtons.forEach((btn) => {
-//         btn.classList.remove("highlighted");
-//       });
-//     });
-//   });
-// }

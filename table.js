@@ -1,9 +1,8 @@
 let _hitAreaClickHandler = null;
 let _hitAreaMouseEnterHandler = null;
 let _hitAreaMouseLeaveHandler = null;
-
+//zakacuje event listenere na hitArea koristeci event delegation umesto direktnih listenera za svako dugme 
 function attachHitAreaListeners(hitArea) {
-  // Ukloni stare listenere pre nego što ih dodamo (sigurno kad se poziva više puta)
   if (_hitAreaClickHandler) {
     hitArea.removeEventListener("click", _hitAreaClickHandler);
     hitArea.removeEventListener("mouseover", _hitAreaMouseEnterHandler);
@@ -49,6 +48,7 @@ function attachHitAreaListeners(hitArea) {
   hitArea.addEventListener("mouseover", _hitAreaMouseEnterHandler);
   hitArea.addEventListener("mouseout", _hitAreaMouseLeaveHandler);
 }
+//pomocna fja za pronalazak dugmeta na osnovnu niza koji prosledimo kako bi dodali hightlight na dugmice pri hover-u
 function findStraightButton(hitArea, number) {
   // Traži straight dugme po data-numbers atributu (cache-ovano iterovanje)
   for (const btn of hitArea.querySelectorAll(".bet-button-straight")) {
@@ -56,7 +56,7 @@ function findStraightButton(hitArea, number) {
   }
   return null;
 }
-
+//kreiranje svih beting zona na tabli sa svim potrebnim informacijama
 function createBettingZones() {
   // const w = gridCanvas.width;
   // const h = gridCanvas.height;
@@ -432,7 +432,7 @@ function createBettingZones() {
     "even",
   );
 }
-
+//fja za kreiranje dugmeta na tabli
 function createButton(
   parent,
   type,
