@@ -1,6 +1,6 @@
 import { WebSocketServer } from "ws";
 import { betStrategies } from "./betStrategies.mjs";
-const PORT = 1337;
+const PORT = process.env.PORT || 1337;
 
 const wss = new WebSocketServer({ port: PORT });
 
